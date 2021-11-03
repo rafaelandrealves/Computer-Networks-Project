@@ -37,7 +37,7 @@ Authentifed = False
 def user():
     
     if Authentifed:
-        return render_template("index.html")
+        return app.send_static_file("qrgen.html")
     else:
         return redirect(url_for('.demo'))
 
