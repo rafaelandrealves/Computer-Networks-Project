@@ -1,10 +1,13 @@
 
 ##################### Library Imports #####################
 
-from flask import Flask, request, jsonify, abort,render_template,render_template_string
+from flask import Flask, request, jsonify, abort,render_template,render_template_string, redirect, url_for,session
 from random import randrange
 from datetime import datetime
+from requests_oauthlib import OAuth2Session
+
 import requests
+import os
 
 # -- ADINT Intermidiate Project
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
@@ -13,8 +16,22 @@ import requests
 # --------------SERVER--------------------
 # ----------------------------------------
 
+
+# PRoblemas- Tabela não mete todas as colunas
+# Falta as verificações
+# A data ta só com ano,mes,dia 
 DATA = [] #list of [usercode, creation_time]
-URL_DB = "http://localhost:8001/gate"
+URL_DB = "http://localhost:8001/"
+
+# This information is obtained upon registration of a new GitHub OAuth
+# application here: https://github.com/settings/applications/new
+client_id = "570015174623402"
+client_secret = "uKU28VqDtiTGm1j51+FkjFwxOiBqMjU4DEVBeWyrzHZ+7VhdWcfQc+A1oaYmow2QMKDa/bsoQb6Gvf+/MD0eHw=="
+authorization_base_url = 'https://fenix.tecnico.ulisboa.pt/oauth/userdialog'
+token_url = 'https://fenix.tecnico.ulisboa.pt/oauth/access_token'
+
+Authentifed = False
+
 #convert int to char to create alphanumeric sequence
 def int2char(n):
     return chr(65+n-43*(n//26))
@@ -183,7 +200,126 @@ def teste_table(dicList,err):
 
     return table
 
+# Check the Secret Number// IF NOT REDIRECT TO LOGIN 
+# User authen leva o secret e confirmar com o sistema
+# Se sim, alterar authentified com global authentified = True e redirect para user
+# Condição para Authentified = FALSE?
+@app.route("/user",methods = ['POST', 'GET'])
+def user():
+    
+    if Authentifed:
+        return render_template("table.html")
+    else:
+        return redirect(url_for('.demo'))
+
+@app.route("/User_reg")
+def table_users():
+    return  requests.get(URL_DB+"occurrences/history",allow_redirects=True).json()
+
+@app.route("/user/authentified/<path:secret>")
+def userAuth(secret):
+    # print(secret)
+    # print(str(app.secret_key))
+    if str(secret) == str(app.secret_key):
+    # if True:
+        global Authentifed 
+        Authentifed = True
+        # COMO RECONHCER USERs ANTIGOS?
+        aux = requests.post(URL_DB + "users/newuser",json={'user_id':'2','token':str(app.secret_key),'secret_code':'123'}, allow_redirects=True)
+        print(aux.json())
+        return redirect(url_for('.user'))
+    else: 
+        abort(404)
+
+
+# Criar um user - user id , token e qr code
+# registado quando faz login no fenix - se já estiver, já está, senão adiciona
+# Não é preciso autentificação - serv base de dados
+# serviço cria o QR code
+# Atenção ao fault tolerance das 2 réplicas
+# Verificar sempre se o 1º servidor está a funcionar, caso contrário direcionar para o 2º servidor
+# sergurança browser servidor é o token
+
+
+# Vou tratar no user da adicionar user na base de dados e da base de dados do user
+# Diogo, tratas to browser e servidor criar automaticamente um QR sempre se que dá refresh quando se acede ao user e tratas da get web app
+# Admin é criar um json com os ids das pessoas que são admins
+# Igual ao intermédio, trato de criar o JSON e fazer a autentificação e verificação
+# O primeiro a acabar trata da réplica
+
+# NOTA : podemos tirar foto ao QR e usar o video comot emos, o prof diz que é tchill, só atenção para explicar isso no relatório
+## NA user app são todos os registos que foram bem sucedidos ou seja a gate foi aberta
+## NO admin é um registo tanto de gate que foram abertas como fechadas, anonymized
+
+
+# ISOLAR GATES EM VARIAS BASE DE DADOS - guar abriu abiru e data, noutra um od asspcoa, na base de dados do utilizador guardar a data e ligar por aí
+# e etr uma base de dados por historial das gates que foram abertas para o admin - no historial do admin não é preciso ligação por data, basta ir por gate,
+# acessed gates by user também não
+# Só é preciso fazer 2 inserts "de cada vez"
+
+
+@app.route("/login")
+def demo():
+    """Step 1: User Authorization.
+
+    Redirect the user/resource owner to the OAuth provider (i.e. Github)
+    using an URL with a few key OAuth parameters.
+    """
+    github = OAuth2Session(client_id, redirect_uri="http://localhost:5000/callback")
+    authorization_url, state = github.authorization_url(authorization_base_url)
+
+
+    # State is used to prevent CSRF, keep this for later.
+    session['oauth_state'] = state
+    return redirect(authorization_url)
+
+
+# Step 2: User authorization, this happens on the provider.
+
+@app.route("/callback", methods=["GET"])
+def callback():
+    """ Step 3: Retrieving an access token.
+
+    The user has been redirected back from the provider to your registered
+    callback URL. With this redirection comes an authorization code included
+    in the redirect URL. We will use that to obtain an access token.
+    """
+
+    print("CALLABACK")
+
+    print(request.url)
+    github = OAuth2Session(client_id, redirect_uri="http://localhost:5000/callback")
+    print(github.authorized)
+    token = github.fetch_token(token_url, client_secret=client_secret,
+                               authorization_response=request.url)
+
+    # At this point you can fetch protected resources but lets save
+    # the token and show how this is done from a persisted token
+    # in /profile.
+    session['oauth_token'] = token
+
+    return redirect(url_for('.profile'))
+
+
+@app.route("/profile", methods=["GET"])
+def profile():
+    """Fetching a protected resource using an OAuth 2 token.
+    """
+    github = OAuth2Session(client_id, token=session['oauth_token'])
+    # try:
+    Info = jsonify(github.get('https://fenix.tecnico.ulisboa.pt/api/fenix/v1/person').json())
+    # messages = {'Authentified':True,'Secret Key':app.secret_key}
+    # return  redirect(url_for('.user', message = messages))
+    return redirect(url_for('.userAuth',secret = str(app.secret_key)))
+    # except:
+    #     # messages = {'Authentified':True,'Secret Key':app.secret_key}
+    #     # return redirect(url_for('.user', message = messages))
+    #     return jsonify(github.get('https://fenix.tecnico.ulisboa.pt/api/fenix/v1/person').json())
+
 
 #Start server
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = "1"
+
+    app.secret_key = os.urandom(24)
+    app.run(debug=True)
