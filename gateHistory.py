@@ -36,7 +36,7 @@ class gateHistory(Base):
     Status = Column(String)
     Date = Column(Date)
     def __repr__(self):
-        return "<gateHistory(id_gate_occurence='%d' gate_id='%s' Status='%s' Date='%s')>" % (
+        return "<gateHistory()(id_gate_occurence='%d' gate_id='%s' Status='%s' Date='%s')>" % (
                                 self.id_gate_occurence,self.gate_id,self.Status,self.Date)
     def to_dictionary(self):
         return {"id_gate_occurence": self.id_gate_occurence, "gate_id": self.gate_id, "Status": self.Status,"Date": self.Date}

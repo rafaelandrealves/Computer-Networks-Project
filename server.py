@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify, abort,render_template,render_template
 from random import randrange
 from datetime import datetime
 from requests_oauthlib import OAuth2Session
-
+import json
 import requests
 import os
 
@@ -20,6 +20,8 @@ import os
 # PRoblemas- Tabela não mete todas as colunas
 # Falta as verificações
 # A data ta só com ano,mes,dia 
+# Não estou a conseguir meter passar o json com so secret
+
 DATA = [] #list of [usercode, creation_time]
 URL_DB = "http://localhost:8001/"
 
@@ -204,11 +206,20 @@ def teste_table(dicList,err):
 # User authen leva o secret e confirmar com o sistema
 # Se sim, alterar authentified com global authentified = True e redirect para user
 # Condição para Authentified = FALSE?
-@app.route("/user",methods = ['POST', 'GET'])
+
+@app.route("/",methods = ['POST', 'GET'])
+def index():
+    ## TODO 3 abas a dizer se quero ser user, gate ou admin e redirecionar
+    return 
+
+## Ter um main page de logins em /user . depois para aceder as cenas ter user/ist_id/secret
+# dentro disto confirmar o secret e isso se existem
+
+@app.route("/user/code",methods = ['POST', 'GET'])
 def user():
-    
+    # Tirar Authentified - Mandar sempre para a autentificação
     if Authentifed:
-        return render_template("table.html")
+        return render_template("qrgen.html")
     else:
         return redirect(url_for('.demo'))
 
@@ -220,11 +231,14 @@ def table_users():
 def userAuth(secret):
     # print(secret)
     # print(str(app.secret_key))
+    # data = request.json
+    # print(data)
     if str(secret) == str(app.secret_key):
     # if True:
         global Authentifed 
         Authentifed = True
         # COMO RECONHCER USERs ANTIGOS?
+        print(app.secret_key)
         aux = requests.post(URL_DB + "users/newuser",json={'user_id':'2','token':str(app.secret_key),'secret_code':'123'}, allow_redirects=True)
         print(aux.json())
         return redirect(url_for('.user'))
@@ -310,7 +324,13 @@ def profile():
     Info = jsonify(github.get('https://fenix.tecnico.ulisboa.pt/api/fenix/v1/person').json())
     # messages = {'Authentified':True,'Secret Key':app.secret_key}
     # return  redirect(url_for('.user', message = messages))
+    print('AQUI')
+    ist_ID = github.get('https://fenix.tecnico.ulisboa.pt/api/fenix/v1/person').json()["username"]
+
+    data = {'token': str(app.secret_key)}
+    
     return redirect(url_for('.userAuth',secret = str(app.secret_key)))
+    # return redirect(url_for('.userAuth',ist_ID = 90171,json=data))
     # except:
     #     # messages = {'Authentified':True,'Secret Key':app.secret_key}
     #     # return redirect(url_for('.user', message = messages))

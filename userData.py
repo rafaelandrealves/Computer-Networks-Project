@@ -11,9 +11,10 @@ from sqlalchemy.orm import sessionmaker
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
 
 # ----------------------------------------
-# --------------GATE DATA-----------------
+# --------------USER DATA-----------------
 # ----------------------------------------
-
+#
+# #  OS três egmentos do servidor podem estar no mesmo flask, mas têm de ter grupos de endpoints específicos
 
 #SLQ access layer initialization
 DATABASE_FILE = "database.sqlite"
@@ -82,7 +83,35 @@ def CheckuserID(new_user_id):
 # Get gate info
 def GetUserOccurrences(user_check):
     return session.query(userTable).filter(userTable.user_id==user_check).all()
-    
+
+
+# Replace Token Code
+def UpdateuserToken(user_id,new_token):
+    aux = CheckuserID(user_id)
+    if aux:
+        session.query(userTable).filter(userTable.user_id==user_id).first().token = new_token
+        try :
+            session.commit()
+        except:
+            session.rollback()
+        return 1
+    else:
+        return 0
+
+# Replace Activation Code
+def UpdateuserSecret(user_id,new_secret):
+    aux = CheckuserID(user_id)
+    if aux:
+        session.query(userTable).filter(userTable.user_id==user_id).first().secret_code = new_secret
+        try :
+            session.commit()
+        except:
+            session.rollback()
+        return 1
+    else:
+        return 0
+
+
 # # Get gate info
 # def GetOccurrencesFrom(date_check):
 #     return session.query(userTable).filter(userTable.Date > date_check).all()
