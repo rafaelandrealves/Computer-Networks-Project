@@ -63,12 +63,16 @@ def listuserDICT():
         ret_list.append(vd)
     return ret_list
 # Query to add elements
-def newUser(new_user_id, new_oken, new_secret_code):
+def newUser(new_user_id, new_token, new_secret_code):
     aux = CheckuserID(new_user_id)
+    print(new_user_id)
+    print(new_token)
+    print(new_secret_code)
+    print(aux)
     if aux:
         return 0
     else:
-        auth = userTable(user_id = new_user_id, token = new_oken, secret_code=new_secret_code)
+        auth = userTable(user_id = new_user_id, token = str(new_token), secret_code=new_secret_code)
         session.add(auth)
         try:
             session.commit()
@@ -79,6 +83,8 @@ def newUser(new_user_id, new_oken, new_secret_code):
 # See if ID already Exists
 def CheckuserID(new_user_id):
     return session.query(userTable).filter(userTable.user_id==new_user_id).first() is not None
+def CheckuserToken(new_user_token):
+    return session.query(userTable).filter(userTable.token==new_user_token).first() is not None
 
 # Get gate info
 def GetUserOccurrences(user_check):

@@ -52,6 +52,7 @@ session = Session()
 def getuserHistory():
     return session.query(userHistory).all()
 
+
 def listuserHistoryDICT():
     ret_list = []
     lv = getuserHistory()
