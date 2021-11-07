@@ -18,10 +18,10 @@ from configparser import ConfigParser
 # ----------------------------------------
 
 
-# TODO PRoblemas- Tabela não mete todas as colunas
+# TODO P
 # Falta as verificações
 # A data ta só com ano,mes,dia 
-# Não estou a conseguir meter passar o json com so secret
+
 
 URL_DB_user_hist = "http://localhost:8000/"
 URL_DB_user = "http://localhost:8001/"
@@ -42,9 +42,9 @@ ADMIN = []
 #get admins info from config file
 def getAdmin(file):
     data = ConfigParser()
-    data.read(file)
+    data.read(os.path.dirname(os.path.realpath(__file__)) + file)
 
-    return json.loads(data["IstGate"]["Admin"])
+    return json.loads(data.get('IstGate','Admin'))
 
 #convert int to char to create alphanumeric sequence
 def int2char(n):
@@ -136,6 +136,24 @@ def gateQR(gateID):
     return app.send_static_file("qrcode.html")
 
 
+@app.route("/gate_scan")
+def gate_scan():
+    # FAZER
+    # request.json
+
+    # Còdigo para ANALISAR Gate para abrir ou não
+
+    # INSERÇÃO BASE DE DADOS
+
+    ## -> COLOCAR SEMPRE QUE a GATE É ABERTA -- METER O QUE VEM DO JSON
+        # aux = requests.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'id_user_occurence':??,'user':session.pop('userID'),'gate_id':??},allow_redirects=True).json()
+        # aux = requests.post(URL_DB_gate_hist+"user/occurrences/newOccurrence",json={'id_gate_occurence':??,'gate_id':??,'Status':'OPEN'},allow_redirects=True).json()
+    ## -> COLOCAR SEMPRE QUE a GATE NÂO É ABERTA COM Sucesso -- METER O QUE VEM DO JSON
+        # aux = requests.post(URL_DB_gate_hist+"user/occurrences/newOccurrence",json={'id_gate_occurence':??,'gate_id':??,'Status':'CLOSED'},allow_redirects=True).json()
+
+
+    return  200
+
 
 #--------------------------------------------USER----------------------
 @app.route("/user",methods = ['POST', 'GET'])
@@ -143,9 +161,12 @@ def user():
     return redirect(url_for('.demo'))
 
 #User and Gate endpoints
+# TODO FALTA DAR UPDATE DO USER CODE
 @app.route("/user/code/<path:istID>",methods = ['POST', 'GET'])
 def QRcode(istID):
     usercode = randalph(10)
+    session['usercode'] = usercode
+    session['userID'] = istID
 
     #REQUEST TO USER DATABASE - send new usercode to certain token
     # TODO METER CHECK DENTRO UPDATE
@@ -195,7 +216,7 @@ def table_users():
 @app.route("/user/authentified/<path:istID>/<path:secret>")
 def userAuth(istID,secret):
     if str(secret) == str(app.secret_key):
-        aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':str(app.secret_key),'secret_code':'123'}, allow_redirects=True)
+        aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':str(app.secret_key),'secret_code':''}, allow_redirects=True)
         if int(istID) in ADMIN:
             return redirect(url_for('.AdminNewGate',istID = istID))
         else:    
@@ -212,72 +233,88 @@ def AdminHome():
 # List the Active Gates
 @app.route("/Admin/<path:istID>/Gates")
 def AdminGates(istID):
-    if int(istID) in ADMIN:
-        Gates_list=requests.get(URL_DB_gates + "listGates", allow_redirects=True).json()
+    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    if aux.json()['StatusCode'] == '1':
+        if int(istID) in ADMIN:
+            Gates_list=requests.get(URL_DB_gates + "listGates", allow_redirects=True).json()
 
-        if Gates_list["StatusCode"] == '1' and Gates_list["Gates"]:
-            return render_template_string(teste_table(Gates_list["Gates"],0))
-        else:
-            return render_template_string(teste_table([],1))
-    return render_template("notadmin.html")
+            if Gates_list["StatusCode"] == '1' and Gates_list["Gates"]:
+                return render_template_string(teste_table(Gates_list["Gates"],0))
+            else:
+                return render_template_string(teste_table([],1))
+        return render_template("notadmin.html")
+    else:
+        abort(404)
 
 # List the Gates History
 @app.route("/Admin/<path:istID>/GatesHistory")
 def AdminGatesHist(istID):
-    if int(istID) in ADMIN:
-        l = requests.get(URL_DB_gates_hist + "history", allow_redirects=True).json()
+    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    if aux.json()['StatusCode'] == '1':
+        if int(istID) in ADMIN:
+            l = requests.get(URL_DB_gates_hist + "history", allow_redirects=True).json()
 
-        if l["history"]:
-            return render_template_string(teste_table(l["history"],0))
-        else:
-            return render_template_string(teste_table([],1))
-    return render_template("notadmin.html")
+            if l["history"]:
+                return render_template_string(teste_table(l["history"],0))
+            else:
+                return render_template_string(teste_table([],1))
+        return render_template("notadmin.html") 
+    else:
+        abort(404)
 
 # List the Gates History
 @app.route("/Admin/<path:istID>/GatesHistory/<path:gateID>")
 def AdminGateHist(istID, gateID):
-    if int(istID) in ADMIN:
-        l = requests.get(URL_DB_gates_hist + str(gateID) + "/history", allow_redirects=True).json()
+    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    if aux.json()['StatusCode'] == '1':
+        if int(istID) in ADMIN:
+            l = requests.get(URL_DB_gates_hist + str(gateID) + "/history", allow_redirects=True).json()
 
-        if l["history"]:
-            return render_template_string(teste_table(l["history"],0))
-        else:
-            return render_template_string(teste_table([],1))
-    return render_template("notadmin.html")
+            if l["history"]:
+                return render_template_string(teste_table(l["history"],0))
+            else:
+                return render_template_string(teste_table([],1))
+        return render_template("notadmin.html")
+    else:
+        abort(404)
         
 # Add a new gate
 @app.route("/Admin/<path:istID>/newGate",methods = ['POST', 'GET'])
 def AdminNewGate(istID):
-    if int(istID) in ADMIN:
-        if request.method == 'POST':
-            data = request.form
-            try:
-                data["gateID"]
-                data["gateLocation"]
-            except:
-                abort(400)
-            
-            url = URL_DB_gates + "newGates"
+    check = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    if check.json()['StatusCode'] == '1':
+        if int(istID) in ADMIN:
+            if request.method == 'POST':
+                data = request.form
+                try:
+                    data["gateID"]
+                    data["gateLocation"]
+                except:
+                    abort(400)
+                
+                url = URL_DB_gates + "newGates"
 
-            if not (data["gateID"] and data["gateID"].isdigit()):
-                if not data["gateLocation"]:
-                    return render_template("showCreated.html",message='ID and Location were not correctly placed!')
-                return render_template("showCreated.html",message='ID was not correctly placed (must be an integer)!')
-            elif not data["gateLocation"]:
-                return render_template("showCreated.html",message='Location was not correctly placed (must not be empty)!')
-            
-            aux = requests.post(url,json={'gateID':data["gateID"],'gateLocation':data["gateLocation"]}, allow_redirects=True)
+                if not (data["gateID"] and data["gateID"].isdigit()):
+                    if not data["gateLocation"]:
+                        return render_template("showCreated.html",message='ID and Location were not correctly placed!')
+                    return render_template("showCreated.html",message='ID was not correctly placed (must be an integer)!')
+                elif not data["gateLocation"]:
+                    return render_template("showCreated.html",message='Location was not correctly placed (must not be empty)!')
+                
+                aux = requests.post(url,json={'gateID':data["gateID"],'gateLocation':data["gateLocation"]}, allow_redirects=True)
 
-            if aux.json()['StatusCode'] == '3':
-                return render_template("showCreated.html",message='ID was already Taken - No Gate Created!')
-            elif aux.json()['StatusCode'] == '2':
-                return render_template("showCreated.html",message='Database Session Failure!')
+                if aux.json()['StatusCode'] == '3':
+                    return render_template("showCreated.html",message='ID was already Taken - No Gate Created!')
+                elif aux.json()['StatusCode'] == '2':
+                    return render_template("showCreated.html",message='Database Session Failure!')
+                else:
+                    new = "Gate ID: "+str(data["gateID"])+"\n, Location: "+data["gateLocation"]+"\n, Secret Number: "+str(aux.json()['Secret Number'])
+                    return render_template("showCreated.html",message=new), 201
             else:
-                new = "Gate ID: "+str(data["gateID"])+"\n, Location: "+data["gateLocation"]+"\n, Secret Number: "+str(aux.json()['Secret Number'])
-                return render_template("showCreated.html",message=new), 201
-        else:
-            return render_template("newGate.html")
-    return render_template("notadmin.html")
+                return render_template("newGate.html")
+        return render_template("notadmin.html")
+    else:
+        abort(404)
 
 # Criar um user - user id , token e qr code
 # registado quando faz login no fenix - se já estiver, já está, senão adiciona
@@ -370,7 +407,7 @@ def profile():
 if __name__ == "__main__":
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = "1"
 
-    ADMIN = getAdmin('config')
+    ADMIN = getAdmin('/config.idk')
     
     app.secret_key = os.urandom(24)
     app.run(debug=True)
