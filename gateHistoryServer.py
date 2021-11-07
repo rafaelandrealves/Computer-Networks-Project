@@ -16,7 +16,7 @@ import datetime
 #Flask
 app = Flask(__name__)
 
-@app.route("gate/occurrences/history",methods = ['GET'])
+@app.route("/gate/occurrences/history",methods = ['GET'])
 def listHistRequest():
     # Call a query to list the active gates
     User_list = gateHistory.getgateHistory()
@@ -27,7 +27,7 @@ def listHistRequest():
     return result
         
 
-@app.route("gate/occurrences/<path:gateID>/history",methods = ['GET'])
+@app.route("/gate/occurrences/<path:gateID>/history",methods = ['GET'])
 def listGateHistRequest(gateID):
     # Call a query to list the active gates
     User_list = gateHistory.GetGateOccurrences(gateID)
@@ -38,7 +38,7 @@ def listGateHistRequest(gateID):
     return result
         
 # Database endpoint for adding new gates´
-@app.route("gate/occurrences/newOccurrence",methods = ['POST'])
+@app.route("/gate/occurrences/newOccurrence",methods = ['POST'])
 def newOccurrenceRequest():
     
     #retrieve data from input JSON body 

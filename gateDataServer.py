@@ -17,7 +17,7 @@ from random import randint
 app = Flask(__name__)
 
 #Data Base Connections
-@app.route("/gate",methods = ['GET'])
+@app.route("/gate/listGates",methods = ['GET'])
 def listGatesRequest():
     # Call a query to list the active gates
     try:
