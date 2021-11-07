@@ -1,0 +1,71 @@
+<html>
+  <head>
+    <title>QRCode Reader</title>
+    <script type="text/javascript" src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>	
+	 <style>
+      .text{
+        resize: none;
+      }
+	  div {text-align: center;font-size: 100px;}
+    </style>
+	<script>var deltat = 5;</script>
+  </head>
+  <body style="background-color:red;">
+  
+  	<p></p><p></p><p></p><p></p><p></p>
+	<div id="time">CLOSED</div>
+	<p></p><p></p><p></p><p></p><p></p>
+	
+    <center><video id="preview"></video></center><p></p>
+	<center><textarea disabled class="text" id='qr'>QRcode info</textarea></center>
+    <script>
+        let scanner = new Instascan.Scanner(
+            {
+                video: document.getElementById('preview')
+            }
+        );
+		
+		Instascan.Camera.getCameras().then(cameras => 
+        {
+            if(cameras.length > 0){
+                scanner.start(cameras[0]);
+            } else {
+                console.error("No Camera Found");
+            }
+        });
+		
+        scanner.addListener('scan', function(content) {
+			document.getElementById('qr').value = content;
+			//MANDAR PEDIDO AJAX AQUI
+      $.ajax({
+                url: '/gate_scan',
+                type: "POST",
+                dataType: "json",
+                contentType: 'application/json',
+                data: JSON.stringify(requestData), // JSON TO SEND IS HERE
+                success: function (data) {
+                    console.log(data);
+                    // caso queiras fazer alguma coisa com os dados que vai buscar é por aqui
+                }
+            });
+			deltat = 5;
+        });
+    </script>
+	
+	<script>
+		var x = setInterval(function() {
+
+		  if (deltat <= 0) {
+			document.getElementById("time").innerHTML = "CLOSED";
+			document.body.style.background = "red";
+		  }
+		  else{
+			document.body.style.background = "green";
+			document.getElementById("time").innerHTML = "OPEN for " + deltat + " seconds";
+			deltat-=1;
+		  }
+		  
+		}, 1000);
+	</script>
+ </body>
+</html>
