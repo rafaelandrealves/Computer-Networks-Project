@@ -3,7 +3,6 @@
 
 from flask import Flask, request, jsonify, abort,render_template,render_template_string, redirect, url_for,session
 from random import randrange
-from datetime import datetime
 from requests_oauthlib import OAuth2Session
 import json
 import requests
@@ -61,10 +60,10 @@ def randalph(n):
 
 #returns HTML for table page
 def teste_table(dicList,err):
-    table = """{% extends 'layout.html' %}
+    table = """{%  extends 'layout.html' %}
                 {% block content %}
                 <body>
-                <h3> List of Gates</h3>"""
+                <h3> List of Gates</h3>""" 
 
     if not err:
         table += draw_table(dicList)
@@ -97,12 +96,6 @@ def draw_table(d):
 #Flask
 app = Flask(__name__)
 
-# Check the Secret Number// IF NOT REDIRECT TO LOGIN 
-# User authen leva o secret e confirmar com o sistema
-# Se sim, alterar authentified com global authentified = True e redirect para user
-# Condição para Authentified = FALSE?
-
-
 #------------------------------------------GATE--------------------------
 @app.route("/",methods = ['POST', 'GET'])
 def index():
@@ -120,7 +113,7 @@ def gateAuth():
         int(data.get('gateID'))
         data.get('gateSecret')
     except:
-        abort(400)
+        return render_template("badlogin.html")
 
     res = requests.get("http://localhost:8003/gate/GateSecret/"+str(data.get('gateID')), allow_redirects=True, json={"secret": data.get('gateSecret')}).json()
     # session['gateSecret'] = data.get('gateSecret')
@@ -129,7 +122,7 @@ def gateAuth():
         session["gateSecret"] = data.get('gateSecret')
         return redirect(url_for('.gate',gateID = str(data.get('gateID'))))
     else:
-        return render_template_string("THE ID AND SECRET DONT MATCH")
+        return render_template("badlogin.html")
     
 @app.route("/gateQR/<path:gateID>")
 def gateQR(gateID):
@@ -157,7 +150,7 @@ def gate_scan():
 
     # INSERÇÃO BASE DE DADOS
 
-    aux = requests.post(URL_DB_gates_hist+"user/occurrences/newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
+    aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
 
     if aux["StatusCode"] == "1":
         aux = request.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'gate_id':session["gateID"],'Status':'OPEN'},allow_redirects=True)
@@ -176,23 +169,20 @@ def user():
 #User and Gate endpoints
 @app.route("/user/code/<path:istID>",methods = ['POST', 'GET'])
 def QRcode(istID):
-
     aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
     if aux.json()['StatusCode'] == '1':
         usercode = randalph(10)
-        session['usercode'] = usercode
+
         Update_Status = requests.post(URL_DB_user+"/user/"+istID+"/updateCode",json={'istID':istID,'token':session["token"],'secret':usercode},allow_redirects=True)
         if Update_Status.json()['StatusCode'] == '2':
-            abort(404)
+            return render_template("badlogin.html")
 
         # TODO METER CHECK DENTRO UPDATE
 
         # Check if the seecret is correct with the user that is being addressed
         return render_template("qrgen.html", usercode=usercode), 201
     else:
-        return render_template_string('Database Session Failure!')
-
-
+        return render_template_string('Credentials don\'t match!')
 
 #User and Gate endpoints
 @app.route("/user/code/<path:istID>/history",methods = ['POST', 'GET'])
@@ -202,12 +192,8 @@ def user_history(istID):
 
     # Check if the seecret is correct with the user that is being addressed
     aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
-
-    if aux.json()['StatusCode'] == '3':
-        #UPDATE SECRET CODE E ASSIM
-        print()
-    elif aux.json()['StatusCode'] == '2':
-        return render_template_string('Database Session Failure!')
+    if aux.json()['StatusCode'] == '2':
+        return render_template("badlogin.html")
 
     return render_template("table.html"), 201
 
@@ -225,7 +211,10 @@ def table_users():
 @app.route("/user/authentified/<path:istID>/<path:secret>")
 def userAuth(istID,secret):
     if secret == session["token"]:
-        aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':session["token"],'secret_code': ""}, allow_redirects=True)
+        aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':session["token"],'secret_code': ""}, allow_redirects=True).json()
+        if aux["StatusCode"] == "2":
+            abort(404)
+
         if int(istID) in ADMIN:
             return redirect(url_for('.AdminIndex',istID = istID))
         else:    
@@ -242,62 +231,91 @@ def AdminHome():
 # Admin Interface
 @app.route("/Admin/<path:istID>")
 def AdminIndex(istID):
-
-
-    return render_template("indexAdmin.html",istID = istID)
+    try:
+        int(istID)
+        session["token"]
+    except:
+        return render_template("badlogin.html")
+    if int(istID) in ADMIN:
+        aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+        if aux.json()['StatusCode'] == '1':
+            return render_template("indexAdmin.html",istID = istID)
+        else:
+            return render_template("badlogin.html")
+    return render_template("notadmin.html")
 
 # List the Active Gates
 @app.route("/Admin/<path:istID>/Gates")
 def AdminGates(istID):
+    try:
+        int(istID)
+        session["token"]
+    except:
+        return render_template("badlogin.html")
     aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             Gates_list=requests.get(URL_DB_gates + "listGates", allow_redirects=True).json()
 
             if Gates_list["StatusCode"] == '1' and Gates_list["Gates"]:
-                return render_template_string(teste_table(Gates_list["Gates"],0))
+                return render_template_string(teste_table(Gates_list["Gates"],0),istID = istID)
             else:
-                return render_template_string(teste_table([],1))
+                return render_template_string(teste_table([],1),istID = istID)
         return render_template("notadmin.html")
     else:
-        abort(404)
+        return render_template("badlogin.html")
 
 # List the Gates History
 @app.route("/Admin/<path:istID>/GatesHistory")
 def AdminGatesHist(istID):
+    try:
+        int(istID)
+        session["token"]
+    except:
+        return render_template("badlogin.html")
     aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             l = requests.get(URL_DB_gates_hist + "history", allow_redirects=True).json()
 
             if l["history"]:
-                return render_template_string(teste_table(l["history"],0))
+                return render_template_string(teste_table(l["history"],0),istID = istID)
             else:
-                return render_template_string(teste_table([],1))
+                return render_template_string(teste_table([],1),istID = istID)
         return render_template("notadmin.html") 
     else:
-        abort(404)
+        return render_template("badlogin.html")
 
 # List the Gates History
 @app.route("/Admin/<path:istID>/GatesHistory/<path:gateID>")
 def AdminGateHist(istID, gateID):
+    try:
+        int(istID)
+        session["token"]
+    except:
+        return render_template("badlogin.html")
     aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             l = requests.get(URL_DB_gates_hist + str(gateID) + "/history", allow_redirects=True).json()
 
             if l["history"]:
-                return render_template_string(teste_table(l["history"],0))
+                return render_template_string(teste_table(l["history"],0),istID = istID)
             else:
-                return render_template_string(teste_table([],1))
+                return render_template_string(teste_table([],1),istID = istID)
         return render_template("notadmin.html")
     else:
-        abort(404)
+        return render_template("badlogin.html")
         
 # Add a new gate
 @app.route("/Admin/<path:istID>/newGate",methods = ['POST', 'GET'])
 def AdminNewGate(istID):
-    check = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    try:
+        int(istID)
+        session["token"]
+    except:
+        return render_template("badlogin.html")
+    check = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
     if check.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             if request.method == 'POST':
@@ -306,57 +324,33 @@ def AdminNewGate(istID):
                     data["gateID"]
                     data["gateLocation"]
                 except:
-                    abort(400)
+                    return render_template("showCreated.html",message='Input information may be missing!',istID = istID)
                 
                 url = URL_DB_gates + "newGates"
 
                 if not (data["gateID"] and data["gateID"].isdigit()):
                     if not data["gateLocation"]:
-                        return render_template("showCreated.html",message='ID and Location were not correctly placed!')
-                    return render_template("showCreated.html",message='ID was not correctly placed (must be an integer)!')
+                        return render_template("showCreated.html",message='ID and Location were not correctly placed!',istID = istID)
+                    return render_template("showCreated.html",message='ID was not correctly placed (must be an integer)!',istID = istID)
                 elif not data["gateLocation"]:
-                    return render_template("showCreated.html",message='Location was not correctly placed (must not be empty)!')
+                    return render_template("showCreated.html",message='Location was not correctly placed (must not be empty)!',istID = istID)
                 
                 aux = requests.post(url,json={'gateID':data["gateID"],'gateLocation':data["gateLocation"]}, allow_redirects=True)
 
                 if aux.json()['StatusCode'] == '3':
-                    return render_template("showCreated.html",message='ID was already Taken - No Gate Created!')
+                    return render_template("showCreated.html",message='ID was already Taken - No Gate Created!',istID = istID)
                 elif aux.json()['StatusCode'] == '2':
-                    return render_template("showCreated.html",message='Database Session Failure!')
+                    return render_template("showCreated.html",message='Database Session Failure!',istID = istID)
                 else:
                     new = "Gate ID: "+str(data["gateID"])+"\n, Location: "+data["gateLocation"]+"\n, Secret Number: "+str(aux.json()['Secret Number'])
-                    return render_template("showCreated.html",message=new), 201
+                    return render_template("showCreated.html",message=new,istID = istID), 201
             else:
-                return render_template("newGate.html")
+                return render_template("newGate.html",istID = istID)
         return render_template("notadmin.html")
     else:
-        abort(404)
+        return render_template("badlogin.html")
 
-# Criar um user - user id , token e qr code
-# registado quando faz login no fenix - se já estiver, já está, senão adiciona
-# Não é preciso autentificação - serv base de dados
-# serviço cria o QR code
-# Atenção ao fault tolerance das 2 réplicas
-# Verificar sempre se o 1º servidor está a funcionar, caso contrário direcionar para o 2º servidor
-# sergurança browser servidor é o token
-
-
-# Vou tratar no user da adicionar user na base de dados e da base de dados do user
-# Diogo, tratas to browser e servidor criar automaticamente um QR sempre se que dá refresh quando se acede ao user e tratas da get web app
-# Admin é criar um json com os ids das pessoas que são admins
-# Igual ao intermédio, trato de criar o JSON e fazer a autentificação e verificação
-# O primeiro a acabar trata da réplica
-
-# NOTA : podemos tirar foto ao QR e usar o video comot emos, o prof diz que é tchill, só atenção para explicar isso no relatório
-## NA user app são todos os registos que foram bem sucedidos ou seja a gate foi aberta
-## NO admin é um registo tanto de gate que foram abertas como fechadas, anonymized
-
-
-# ISOLAR GATES EM VARIAS BASE DE DADOS - guar abriu abiru e data, noutra um od asspcoa, na base de dados do utilizador guardar a data e ligar por aí
-# e etr uma base de dados por historial das gates que foram abertas para o admin - no historial do admin não é preciso ligação por data, basta ir por gate,
-# acessed gates by user também não
-# Só é preciso fazer 2 inserts "de cada vez"
-
+#--------------------------------------------------------AUTH---------------------------------------------
 
 @app.route("/login")
 def demo():

@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 #SLQ access layer initialization
-DATABASE_FILE = "database.sqlite"
+DATABASE_FILE = "userhist_db.sqlite"
 db_exists = False
 if os.path.exists(DATABASE_FILE):
     db_exists = True

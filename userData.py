@@ -4,7 +4,7 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import sessionmaker
 
 # -- ADINT Intermidiate Project
@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 # #  OS três egmentos do servidor podem estar no mesmo flask, mas têm de ter grupos de endpoints específicos
 
 #SLQ access layer initialization
-DATABASE_FILE = "database.sqlite"
+DATABASE_FILE = "user_db.sqlite"
 db_exists = False
 if os.path.exists(DATABASE_FILE):
     db_exists = True
