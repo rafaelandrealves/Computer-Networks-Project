@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 # Database endpoint for adding new gates
 @app.route("/users/newuser",methods = ['POST'])
-def newGatesRequest():
+def newUserRequest():
     # Create a random Secret number to be associated to the new gate to be registered
     # secret_number = randint(1,2020210)
     # while(userData.SecretExist(secret_number)):
@@ -64,6 +64,27 @@ def CheckUser():
     else:
         return jsonify({'Secret Number':data["token"],'StatusCode':'2','Description':'Err'})
 
+
+# Database endpoint for adding new gates
+@app.route("/user/<path:istID>/updateCode",methods = ['POST'])
+def UpdateUserCode(istID):
+    #retrieve data from input JSON body 
+    data = request.json
+    
+    try:
+        int(data["istID"])
+        data["token"]
+        data["secret"]
+    except:
+        abort(400)    
+    Status = userData.UpdateuserSecret(int(data["istID"]),data["secret"])
+    if Status:
+        return jsonify({'Secret Number':data["secret"],'StatusCode':'1', 'Description':'OK'})
+    else:
+        return jsonify({'Secret Number':data["secret"],'StatusCode':'2','Description':'Err'})
+
+
+
 @app.route("/user/bycode")
 def CheckbyCode():
     data = request.json
@@ -77,7 +98,7 @@ def CheckbyCode():
 
     if user:
         return jsonify({'userID': user.id})
-    else
+    else:
         abort(400)
 
 #Start server

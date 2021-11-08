@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <!-- <script>
+      var istID = '{{message}}';
+      var user = '/user/code/'+istID;
+      var userHist =  '/user/code/'+istID + '/history';
+      var createGate = '/Admin/'+istID+'/newGate';
+      var listgates = '/Admin/'+istID+'/Gates';
+      var gateHist = '/Admin/'+istID+'/GateHistory';
+      document.getElementById("link1").setAttribute("href",user);
+      document.getElementById("link2").setAttribute("href",userHist);
+      document.getElementById("link3").setAttribute("href",createGate);
+      document.getElementById("link4").setAttribute("href",listgates);
+      document.getElementById("link5").setAttribute("href",gateHist);
+
+  </script> -->
+
+
+
+  <h3>Index Admin</h3>
+      <div>
+        <ul>
+          <li> <a href = '/user/code/{{istID}}'> User </a></li>
+          <li> <a href =  '/user/code/{{istID}}/history' > User History</a></li>
+          <li> <a href = '/Admin/{{istID}}/newGate'> Create New gate </a></li>
+          <li> <a href = '/Admin/{{istID}}/Gates'> List Gate </a></li>
+          <li> <a href = '/Admin/{{istID}}/GateHistory'> Gate History </a></li>
+
+        </ul>
+      </div>
+
+
+</html>

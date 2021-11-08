@@ -67,16 +67,13 @@ def listuserHistoryDICT():
 
 # Query to add elements
 def newOcurrence(new_user, new_gate_id,new_Date):
-    if aux:
-        return 0
-    else:
-        auth = userHistory(user = new_user, gate_id=new_gate_id,Date=new_Date)
-        session.add(auth)
-        try:
-            session.commit()
-        except:
-            session.rollback()
-        return 1
+    auth = userHistory(user = new_user, gate_id=new_gate_id,Date=new_Date)
+    session.add(auth)
+    try:
+        session.commit()
+    except:
+        session.rollback()
+    return 1
 
 # See if ID already Exists
 def CheckOccurrenceID(new_id_user_occurence):

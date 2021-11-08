@@ -42,7 +42,7 @@ ADMIN = []
 #get admins info from config file
 def getAdmin(file):
     data = ConfigParser()
-    data.read(file)
+    data.read(os.path.dirname(os.path.realpath(__file__)) + file)
 
     return json.loads(data.get('IstGate','Admin'))
 
@@ -157,19 +157,13 @@ def gate_scan():
 
     # INSERÇÃO BASE DE DADOS
 
-    aux = requests.post(URL_DB_gate_hist+"user/occurrences/newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
+    aux = requests.post(URL_DB_gates_hist+"user/occurrences/newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
 
     if aux["StatusCode"] == "1":
         aux = request.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'gate_id':session["gateID"],'Status':'OPEN'},allow_redirects=True)
         return jsonify({'open': 1})
     else:
         aux = request.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
-
-    ## -> COLOCAR SEMPRE QUE a GATE É ABERTA -- METER O QUE VEM DO JSON
-        # aux = requests.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'id_user_occurence':??,'user':session.pop('userID'),'gate_id':??},allow_redirects=True).json()
-        # aux = requests.post(URL_DB_gate_hist+"user/occurrences/newOccurrence",json={'id_gate_occurence':??,'gate_id':??,'Status':'OPEN'},allow_redirects=True).json()
-    ## -> COLOCAR SEMPRE QUE a GATE NÂO É ABERTA COM Sucesso -- METER O QUE VEM DO JSON
-        # aux = requests.post(URL_DB_gate_hist+"user/occurrences/newOccurrence",json={'id_gate_occurence':??,'gate_id':??,'Status':'CLOSED'},allow_redirects=True).json()
 
     return jsonify({'open': 0}) 
 
@@ -182,37 +176,32 @@ def user():
 #User and Gate endpoints
 @app.route("/user/code/<path:istID>",methods = ['POST', 'GET'])
 def QRcode(istID):
-    usercode = randalph(10)
-    session['usercode'] = usercode
-    session['userID'] = istID
 
-    #REQUEST TO USER DATABASE - send new usercode to certain token
-    # TODO METER CHECK DENTRO UPDATE
-    url = "http://localhost:8001/users/newuser"
-    # aux = requests.post(url,json={'user_id':data["id"],'token':data["token"],'secret_code':usercode}, allow_redirects=True)
-    # Check if the seecret is correct with the user that is being addressed
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+    if aux.json()['StatusCode'] == '1':
+        usercode = randalph(10)
+        session['usercode'] = usercode
+        Update_Status = requests.post(URL_DB_user+"/user/"+istID+"/updateCode",json={'istID':istID,'token':session["token"],'secret':usercode},allow_redirects=True)
+        if Update_Status.json()['StatusCode'] == '2':
+            abort(404)
 
+        # TODO METER CHECK DENTRO UPDATE
 
-    if aux.json()['StatusCode'] == '3':
-        #UPDATE SECRET CODE E ASSIM
-        print()
-    elif aux.json()['StatusCode'] == '2':
+        # Check if the seecret is correct with the user that is being addressed
+        return render_template("qrgen.html", usercode=usercode), 201
+    else:
         return render_template_string('Database Session Failure!')
 
-    return render_template("qrgen.html", usercode=usercode), 201
 
 
 #User and Gate endpoints
 @app.route("/user/code/<path:istID>/history",methods = ['POST', 'GET'])
 def user_history(istID):
-    usercode = randalph(10)
 
     #REQUEST TO USER DATABASE - send new usercode to certain token
 
-    # aux = requests.post(url,json={'user_id':data["id"],'token':data["token"],'secret_code':usercode}, allow_redirects=True)
     # Check if the seecret is correct with the user that is being addressed
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
 
     if aux.json()['StatusCode'] == '3':
         #UPDATE SECRET CODE E ASSIM
@@ -227,7 +216,7 @@ def user_history(istID):
 # TODO MUDAR PARA SER ESPECIFICO APENAS DE UM USER
 @app.route("/User_reg")
 def table_users():
-    return  requests.get(URL_DB_user_hist+"user/occurrences/history",allow_redirects=True).json()
+    return  requests.get(URL_DB_user_hist+"user/occurrences/"+ session["userID"]+"/history",allow_redirects=True).json()
 
 
 #-------------------------------------------------------------AUTH-------------------------------------------
@@ -238,7 +227,7 @@ def userAuth(istID,secret):
     if secret == session["token"]:
         aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':session["token"],'secret_code': ""}, allow_redirects=True)
         if int(istID) in ADMIN:
-            return redirect(url_for('.AdminNewGate',istID = istID))
+            return redirect(url_for('.AdminIndex',istID = istID))
         else:    
             return redirect(url_for('.QRcode',istID = istID))
     else: 
@@ -250,10 +239,17 @@ def userAuth(istID,secret):
 def AdminHome():
     return redirect(url_for('.demo'))
 
+# Admin Interface
+@app.route("/Admin/<path:istID>")
+def AdminIndex(istID):
+
+
+    return render_template("indexAdmin.html",istID = istID)
+
 # List the Active Gates
 @app.route("/Admin/<path:istID>/Gates")
 def AdminGates(istID):
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             Gates_list=requests.get(URL_DB_gates + "listGates", allow_redirects=True).json()
@@ -269,7 +265,7 @@ def AdminGates(istID):
 # List the Gates History
 @app.route("/Admin/<path:istID>/GatesHistory")
 def AdminGatesHist(istID):
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             l = requests.get(URL_DB_gates_hist + "history", allow_redirects=True).json()
@@ -428,7 +424,7 @@ def profile():
 if __name__ == "__main__":
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = "1"
 
-    ADMIN = getAdmin('config.idk')
+    ADMIN = getAdmin('/config.idk')
     
     app.secret_key = os.urandom(24)
     app.run(debug=True)

@@ -65,16 +65,14 @@ def listuserHistoryDICT():
     return ret_list
 # Query to add elements
 def newOcurrence(new_gate_id, new_Status,new_Date):
-    if aux:
-        return 0
-    else:
-        auth = gateHistory(gate_id = new_gate_id, Status=new_Status,Date=new_Date)
-        session.add(auth)
-        try:
-            session.commit()
-        except:
-            session.rollback()
-        return 1
+
+    auth = gateHistory(gate_id = new_gate_id, Status=new_Status,Date=new_Date)
+    session.add(auth)
+    try:
+        session.commit()
+    except:
+        session.rollback()
+    return 1
 
 # See if ID already Exists
 def CheckOccurrenceID(new_id_gate_occurence):

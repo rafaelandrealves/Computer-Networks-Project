@@ -65,10 +65,7 @@ def listuserDICT():
 # Query to add elements
 def newUser(new_user_id, new_token, new_secret_code):
     aux = CheckuserID(new_user_id)
-    print(new_user_id)
-    print(new_token)
-    print(new_secret_code)
-    print(aux)
+  
     if aux:
         return 0
     else:
