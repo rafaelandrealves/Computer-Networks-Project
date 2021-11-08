@@ -42,7 +42,7 @@ ADMIN = []
 #get admins info from config file
 def getAdmin(file):
     data = ConfigParser()
-    data.read(os.path.dirname(os.path.realpath(__file__)) + file)
+    data.read(file)
 
     return json.loads(data.get('IstGate','Admin'))
 
@@ -125,25 +125,45 @@ def gateAuth():
     res = requests.get("http://localhost:8003/gate/GateSecret/"+str(data.get('gateID')), allow_redirects=True, json={"secret": data.get('gateSecret')}).json()
     # session['gateSecret'] = data.get('gateSecret')
     if res["Valid"]=='1':
+        session["gateID"] = data.get('gateID')
+        session["gateSecret"] = data.get('gateSecret')
         return redirect(url_for('.gate',gateID = str(data.get('gateID'))))
     else:
-        #return render_template_string("THE ID AND SECRET DONT MATCH")
-        return redirect(url_for('.gateQR', gateID=str(data.get('gateID')),json={"secret": data.get('gateSecret')}))
-
+        return render_template_string("THE ID AND SECRET DONT MATCH")
+    
 @app.route("/gateQR/<path:gateID>")
 def gateQR(gateID):
-
-    return app.send_static_file("qrcode.html")
+    if session["gateID"] == gateID:
+        return app.send_static_file("qrcode.html")
+    return render_template_string("THE ID AND SECRET DONT MATCH")
 
 
 @app.route("/gate_scan")
 def gate_scan():
     # FAZER
-    # request.json
+    data = request.json
 
+    try:
+        data['qr']
+    except:
+        abort(404)
+
+    try:
+        user = request.get(URL_DB_user+"user/bycode",json={'code': data['qr']}).json()["gateID"]
+    except:
+        aux = request.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
+        return jsonify({'open': 0})
     # Còdigo para ANALISAR Gate para abrir ou não
 
     # INSERÇÃO BASE DE DADOS
+
+    aux = requests.post(URL_DB_gate_hist+"user/occurrences/newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
+
+    if aux["StatusCode"] == "1":
+        aux = request.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'gate_id':session["gateID"],'Status':'OPEN'},allow_redirects=True)
+        return jsonify({'open': 1})
+    else:
+        aux = request.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
 
     ## -> COLOCAR SEMPRE QUE a GATE É ABERTA -- METER O QUE VEM DO JSON
         # aux = requests.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'id_user_occurence':??,'user':session.pop('userID'),'gate_id':??},allow_redirects=True).json()
@@ -151,17 +171,15 @@ def gate_scan():
     ## -> COLOCAR SEMPRE QUE a GATE NÂO É ABERTA COM Sucesso -- METER O QUE VEM DO JSON
         # aux = requests.post(URL_DB_gate_hist+"user/occurrences/newOccurrence",json={'id_gate_occurence':??,'gate_id':??,'Status':'CLOSED'},allow_redirects=True).json()
 
+    return jsonify({'open': 0}) 
 
-    return  200
 
-
-#--------------------------------------------USER----------------------
+#--------------------------------------------USER------------------------------------------------------------
 @app.route("/user",methods = ['POST', 'GET'])
 def user():
     return redirect(url_for('.demo'))
 
 #User and Gate endpoints
-# TODO FALTA DAR UPDATE DO USER CODE
 @app.route("/user/code/<path:istID>",methods = ['POST', 'GET'])
 def QRcode(istID):
     usercode = randalph(10)
@@ -212,11 +230,13 @@ def table_users():
     return  requests.get(URL_DB_user_hist+"user/occurrences/history",allow_redirects=True).json()
 
 
+#-------------------------------------------------------------AUTH-------------------------------------------
+
 # TODO FALTA ALTERAR O QR CODE.
 @app.route("/user/authentified/<path:istID>/<path:secret>")
 def userAuth(istID,secret):
-    if str(secret) == str(app.secret_key):
-        aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':str(app.secret_key),'secret_code':''}, allow_redirects=True)
+    if secret == session["token"]:
+        aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':session["token"],'secret_code': ""}, allow_redirects=True)
         if int(istID) in ADMIN:
             return redirect(url_for('.AdminNewGate',istID = istID))
         else:    
@@ -224,7 +244,7 @@ def userAuth(istID,secret):
     else: 
         abort(404)
 
-#-----------------------------------------------ADMIN---------------
+#-----------------------------------------------ADMIN----------------------------------------------------------
 # Admin Interface
 @app.route("/Admin")
 def AdminHome():
@@ -355,6 +375,7 @@ def demo():
 
     # State is used to prevent CSRF, keep this for later.
     session['oauth_state'] = state
+    
     return redirect(authorization_url)
 
 
@@ -369,7 +390,7 @@ def callback():
     in the redirect URL. We will use that to obtain an access token.
     """
 
-    print("CALLABACK")
+    print("CALLBACK")
 
     print(request.url)
     github = OAuth2Session(client_id, redirect_uri="http://localhost:5000/callback")
@@ -396,10 +417,10 @@ def profile():
     # return  redirect(url_for('.user', message = messages))
 
     ist_ID = github.get('https://fenix.tecnico.ulisboa.pt/api/fenix/v1/person').json()["username"]
-    ist_ID = str(ist_ID).strip('ist')
-    data = {'token': str(app.secret_key)}
+    session["userID"] = str(ist_ID).strip('ist')
+    session["token"] = randalph(12)
     
-    return redirect(url_for('.userAuth',istID=ist_ID,secret = str(app.secret_key)))
+    return redirect(url_for('.userAuth',istID=session["userID"],secret=session["token"]))
  
 
 
@@ -407,7 +428,7 @@ def profile():
 if __name__ == "__main__":
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = "1"
 
-    ADMIN = getAdmin('/config.idk')
+    ADMIN = getAdmin('config.idk')
     
     app.secret_key = os.urandom(24)
     app.run(debug=True)

@@ -29,7 +29,6 @@ Base = declarative_base()
 
 
 #Declaration of data
-
 class userTable(Base):
     __tablename__ = 'userTable'
     user_id = Column(Integer,primary_key=True)
@@ -62,6 +61,7 @@ def listuserDICT():
         del(vd["secret_code"])
         ret_list.append(vd)
     return ret_list
+
 # Query to add elements
 def newUser(new_user_id, new_token, new_secret_code):
     aux = CheckuserID(new_user_id)
@@ -86,10 +86,13 @@ def CheckuserID(new_user_id):
 def CheckuserToken(new_user_token):
     return session.query(userTable).filter(userTable.token==new_user_token).first() is not None
 
-# Get gate info
+# Get User info
 def GetUserOccurrences(user_check):
     return session.query(userTable).filter(userTable.user_id==user_check).all()
 
+# Get user by Activation code
+def GetUserbyAC(code):
+    return session.query(userTable).filter(userTable.secret_code==code).all()
 
 # Replace Token Code
 def UpdateuserToken(user_id,new_token):

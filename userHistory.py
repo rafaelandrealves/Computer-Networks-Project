@@ -64,13 +64,13 @@ def listuserHistoryDICT():
         del(vd["Date"])
         ret_list.append(vd)
     return ret_list
+
 # Query to add elements
-def newOcurrence(id_user_occurence, new_user, new_gate_id,new_Date):
-    aux = CheckOccurrenceID(id_user_occurence)
+def newOcurrence(new_user, new_gate_id,new_Date):
     if aux:
         return 0
     else:
-        auth = userHistory(id_user_occurence = id_user_occurence, user = new_user, gate_id=new_gate_id,Date=new_Date)
+        auth = userHistory(user = new_user, gate_id=new_gate_id,Date=new_Date)
         session.add(auth)
         try:
             session.commit()

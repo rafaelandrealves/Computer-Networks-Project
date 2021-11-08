@@ -45,16 +45,14 @@ def newOccurrenceRequest():
     data = request.json
     
     try:
-        int(data["id_gate_occurence"])
         int(data["gate_id"])
         data["Status"]
-        data["Date"]
     except:
         abort(400)
 
     # Call query in userData to create a new gate and add it do the database
     try:     
-        status = gateHistory.newOcurrence(int(data["id_gate_occurence"]),int(data["gate_id"]),data["Status"],datetime.datetime.now())
+        status = gateHistory.newOcurrence(int(data["gate_id"]),data["Status"],datetime.datetime.now())
     except:
         return jsonify({'Secret Number':'', 'StatusCode':'2', 'Description':'Err'})
     if status:    

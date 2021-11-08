@@ -47,7 +47,6 @@ def newOccurrenceRequest():
     data = request.json
     
     try:
-        int(data["id_user_occurence"])
         data["user"]
         int(data["gate_id"])
     except:
@@ -55,7 +54,7 @@ def newOccurrenceRequest():
 
     # Call query in userData to create a new gate and add it do the database
     try:     
-        status = userHistory.newOcurrence(int(data["id_user_occurence"]),data["user"],int(data["gate_id"]),datetime.datetime.now())
+        status = userHistory.newOcurrence(data["user"],int(data["gate_id"]),datetime.datetime.now())
     except:
         return jsonify({'Secret Number':'', 'StatusCode':'2', 'Description':'Err'})
     if status:    

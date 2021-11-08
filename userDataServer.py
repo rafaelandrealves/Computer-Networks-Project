@@ -48,7 +48,7 @@ def newGatesRequest():
         return jsonify({'Secret Number':'','StatusCode':'3','Description':'Updated Token'})
 
 
-# Database endpoint for adding new gates´
+# Database endpoint for adding new gates
 @app.route("/user/check",methods = ['POST'])
 def CheckUser():
     #retrieve data from input JSON body 
@@ -63,6 +63,22 @@ def CheckUser():
         return jsonify({'Secret Number':data["token"], 'StatusCode':'1', 'Description':'OK'})
     else:
         return jsonify({'Secret Number':data["token"],'StatusCode':'2','Description':'Err'})
+
+@app.route("/user/bycode")
+def CheckbyCode():
+    data = request.json
+
+    try:
+        data['code']
+    except:
+        abort(400)
+
+    user = userData.GetUserbyAC(data['code'])
+
+    if user:
+        return jsonify({'userID': user.id})
+    else
+        abort(400)
 
 #Start server
 if __name__ == "__main__":

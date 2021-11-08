@@ -64,12 +64,11 @@ def listuserHistoryDICT():
         ret_list.append(vd)
     return ret_list
 # Query to add elements
-def newOcurrence(new_id_gate_occurence, new_gate_id, new_Status,new_Date):
-    aux = CheckOccurrenceID(new_id_gate_occurence)
+def newOcurrence(new_gate_id, new_Status,new_Date):
     if aux:
         return 0
     else:
-        auth = gateHistory(id_gate_occurence = new_id_gate_occurence, gate_id = new_gate_id, Status=new_Status,Date=new_Date)
+        auth = gateHistory(gate_id = new_gate_id, Status=new_Status,Date=new_Date)
         session.add(auth)
         try:
             session.commit()
