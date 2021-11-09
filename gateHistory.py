@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 #SLQ access layer initialization
-DATABASE_FILE = "database.sqlite"
+DATABASE_FILE = "gatehist_db.sqlite"
 db_exists = False
 if os.path.exists(DATABASE_FILE):
     db_exists = True
@@ -64,18 +64,15 @@ def listuserHistoryDICT():
         ret_list.append(vd)
     return ret_list
 # Query to add elements
-def newOcurrence(new_id_gate_occurence, new_gate_id, new_Status,new_Date):
-    aux = CheckOccurrenceID(new_id_gate_occurence)
-    if aux:
-        return 0
-    else:
-        auth = gateHistory(id_gate_occurence = new_id_gate_occurence, gate_id = new_gate_id, Status=new_Status,Date=new_Date)
-        session.add(auth)
-        try:
-            session.commit()
-        except:
-            session.rollback()
-        return 1
+def newOcurrence(new_gate_id, new_Status,new_Date):
+
+    auth = gateHistory(gate_id = new_gate_id, Status=new_Status,Date=new_Date)
+    session.add(auth)
+    try:
+        session.commit()
+    except:
+        session.rollback()
+    return 1
 
 # See if ID already Exists
 def CheckOccurrenceID(new_id_gate_occurence):

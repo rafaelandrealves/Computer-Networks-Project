@@ -2,7 +2,6 @@
 
 import gateHistory
 from flask import Flask, request, jsonify, abort
-from random import randint
 import datetime
 
 # -- ADINT Intermidiate Project
@@ -21,10 +20,8 @@ def listHistRequest():
     # Call a query to list the active gates
     User_list = gateHistory.getgateHistory()
     result1 = [{'id_gate_occurence':item.id_gate_occurence,'gate_id':item.gate_id,'Status':item.Status,'Date':item.Date} for item in User_list]
-    # print(result1)
-    result = {"history": result1}
-    # print(result)
-    return result
+
+    return jsonify({"history": result1})
         
 
 @app.route("/gate/occurrences/<path:gateID>/history",methods = ['GET'])
@@ -32,10 +29,8 @@ def listGateHistRequest(gateID):
     # Call a query to list the active gates
     User_list = gateHistory.GetGateOccurrences(gateID)
     result1 = [{'id_gate_occurence':item.id_gate_occurence,'gate_id':item.gate_id,'Status':item.Status,'Date':item.Date} for item in User_list]
-    # print(result1)
-    result = {"history": result1}
-    # print(result)
-    return result
+
+    return jsonify({"history": result1})
         
 # Database endpoint for adding new gates´
 @app.route("/gate/occurrences/newOccurrence",methods = ['POST'])
@@ -45,16 +40,14 @@ def newOccurrenceRequest():
     data = request.json
     
     try:
-        int(data["id_gate_occurence"])
         int(data["gate_id"])
         data["Status"]
-        data["Date"]
     except:
         abort(400)
 
     # Call query in userData to create a new gate and add it do the database
     try:     
-        status = gateHistory.newOcurrence(int(data["id_gate_occurence"]),int(data["gate_id"]),data["Status"],datetime.datetime.now())
+        status = gateHistory.newOcurrence(int(data["gate_id"]),data["Status"],datetime.datetime.now())
     except:
         return jsonify({'Secret Number':'', 'StatusCode':'2', 'Description':'Err'})
     if status:    

@@ -2,7 +2,6 @@
 
 import userHistory
 from flask import Flask, request, jsonify, abort
-from random import randint
 import datetime
 
 # -- ADINT Intermidiate Project
@@ -21,12 +20,9 @@ def listHistRequest():
     # Call a query to list the active gates
     User_list = userHistory.getuserHistory()
     result1 = [{'id_user_occurence':item.id_user_occurence,'user':item.user,'gate_id':item.gate_id,'Date':item.Date} for item in User_list]
-    # print(result1)
-    result = {"history": result1}
-    # print(result)
-    return result
-        
-    # return jsonify({'Gates':result,'StatusCode':'1','Description':'OK'})
+
+    return jsonify({"history": result1})
+
 
 
 @app.route("/user/occurrences/<path:istID>/history",methods = ['GET'])
@@ -34,10 +30,8 @@ def listUserHistRequest(istID):
     # Call a query to list the active gates
     User_list = userHistory.GetUserOccurrences(istID)
     result1 = [{'id_user_occurence':item.id_user_occurence,'user':item.user,'gate_id':item.gate_id,'Date':item.Date} for item in User_list]
-    # print(result1)
-    result = {"history": result1}
-    # print(result)
-    return result
+
+    return jsonify({"history": result1})
         
 # Database endpoint for adding new gates´
 @app.route("/user/occurrences/newOccurrence",methods = ['POST'])
@@ -47,7 +41,6 @@ def newOccurrenceRequest():
     data = request.json
     
     try:
-        int(data["id_user_occurence"])
         data["user"]
         int(data["gate_id"])
     except:
@@ -55,15 +48,15 @@ def newOccurrenceRequest():
 
     # Call query in userData to create a new gate and add it do the database
     try:     
-        status = userHistory.newOcurrence(int(data["id_user_occurence"]),data["user"],int(data["gate_id"]),datetime.datetime.now())
+        status = userHistory.newOcurrence(data["user"],int(data["gate_id"]),datetime.datetime.now())
     except:
-        return jsonify({'Secret Number':'', 'StatusCode':'2', 'Description':'Err'})
+        return jsonify({'StatusCode':'2', 'Description':'Err'})
     if status:    
         #return the secret number as JSON
-        return jsonify({'Secret Number':int(data["id_user_occurence"]),'StatusCode':'1','Description':'OK'})
+        return jsonify({'StatusCode':'1','Description':'OK'})
     else:
         # The ID already exists - Not Admitted
-        return jsonify({'Secret Number':'','StatusCode':'3','Description':'NA'})
+        return jsonify({'StatusCode':'3','Description':'NA'})
 
 
 #Start server
