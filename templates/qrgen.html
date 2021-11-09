@@ -1,4 +1,4 @@
 <html><head><link rel="shortcut icon" href="#"><title>QRCode Generator</title></head><body><div id="qrcode"></div></body>
         <script type="text/javascript" src="{{url_for('static', filename='qrcode.min.js')}}"></script><script>
 	var qrcode = new QRCode(document.getElementById('qrcode'));
-	qrcode.makeCode("{{usercode}}");</script></html>
+	qrcode.makeCode("{{code}}");</script></html>

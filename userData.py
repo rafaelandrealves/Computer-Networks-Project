@@ -89,7 +89,7 @@ def GetUserOccurrences(user_check):
 
 # Get user by Activation code
 def GetUserbyAC(code):
-    return session.query(userTable).filter(userTable.secret_code==code).all()
+    return session.query(userTable).filter(userTable.secret_code==code).first()
 
 # Replace Token Code
 def UpdateuserToken(user_id,new_token):

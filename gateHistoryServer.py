@@ -32,6 +32,7 @@ def listGateHistRequest(gateID):
 
     return jsonify({"history": result1})
         
+# TODO CENA das sessons não inicializadas
 # Database endpoint for adding new gates´
 @app.route("/gate/occurrences/newOccurrence",methods = ['POST'])
 def newOccurrenceRequest():
@@ -52,7 +53,7 @@ def newOccurrenceRequest():
         return jsonify({'Secret Number':'', 'StatusCode':'2', 'Description':'Err'})
     if status:    
         #return the secret number as JSON
-        return jsonify({'Secret Number':int(data["id_user_occurence"]),'StatusCode':'1','Description':'OK'})
+        return jsonify({'Secret Number':int(data["gate_id"]),'StatusCode':'1','Description':'OK'})
     else:
         # The ID already exists - Not Admitted
         return jsonify({'Secret Number':'','StatusCode':'3','Description':'NA'})

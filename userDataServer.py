@@ -93,7 +93,7 @@ def CheckbyCode():
     user = userData.GetUserbyAC(data['code'])
 
     if user:
-        return jsonify({'userID': user.id})
+        return jsonify({'userID': user.user_id})
     else:
         return jsonify({})
 

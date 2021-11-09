@@ -120,7 +120,7 @@ def gateAuth():
     if res["Valid"]=='1':
         session["gateID"] = data.get('gateID')
         session["gateSecret"] = data.get('gateSecret')
-        return redirect(url_for('.gate',gateID = str(data.get('gateID'))))
+        return redirect(url_for('.gateQR',gateID = str(data.get('gateID'))))
     else:
         return render_template("badlogin.html")
     
@@ -130,33 +130,33 @@ def gateQR(gateID):
         return app.send_static_file("qrcode.html")
     return render_template_string("THE ID AND SECRET DONT MATCH")
 
-
-@app.route("/gate_scan")
+# TODO Erro quando faço reload -> gateID
+@app.route("/gate_scan",methods = ['POST', 'GET'])
 def gate_scan():
     # FAZER
-    data = request.json
-
+    
+    # data = request.json
+    data = request.get_json()
     try:
         data['qr']
     except:
         abort(404)
-
     try:
-        user = request.get(URL_DB_user+"user/bycode",json={'code': data['qr']}).json()["gateID"]
+        user = requests.get(URL_DB_user+"user/bycode",json={'code': data['qr']}).json()["userID"]
     except:
-        aux = request.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
+        aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
         return jsonify({'open': 0})
     # Còdigo para ANALISAR Gate para abrir ou não
 
     # INSERÇÃO BASE DE DADOS
 
-    aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
+    aux = requests.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
 
     if aux["StatusCode"] == "1":
-        aux = request.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'gate_id':session["gateID"],'Status':'OPEN'},allow_redirects=True)
+        aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':session["gateID"],'Status':'OPEN'},allow_redirects=True)
         return jsonify({'open': 1})
     else:
-        aux = request.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
+        aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
 
     return jsonify({'open': 0}) 
 
@@ -168,19 +168,27 @@ def user():
 
 #User and Gate endpoints
 @app.route("/user/code/<path:istID>",methods = ['POST', 'GET'])
-def QRcode(istID):
+def UserQR(istID):
+    try:
+        session["token"]
+    except:
+        abort(400)
+    flag = 1
+    if request.environ["HTTP_REFERER"] ==('http://localhost:5000/user/code/'+istID):
+        flag = 0
+
     aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
     if aux.json()['StatusCode'] == '1':
-        usercode = randalph(10)
-
-        Update_Status = requests.post(URL_DB_user+"/user/"+istID+"/updateCode",json={'istID':istID,'token':session["token"],'secret':usercode},allow_redirects=True)
-        if Update_Status.json()['StatusCode'] == '2':
-            return render_template("badlogin.html")
+        if flag :
+            session["usercode"] = randalph(10)
+            Update_Status = requests.post(URL_DB_user+"/user/"+istID+"/updateCode",json={'istID':istID,'token':session["token"],'secret':session["usercode"]},allow_redirects=True)
+            if Update_Status.json()['StatusCode'] == '2':
+                return render_template("badlogin.html")
 
         # TODO METER CHECK DENTRO UPDATE
 
         # Check if the seecret is correct with the user that is being addressed
-        return render_template("qrgen.html", usercode=usercode), 201
+        return render_template("qrgen.html", code=session["usercode"]), 201
     else:
         return render_template_string('Credentials don\'t match!')
 
@@ -218,7 +226,7 @@ def userAuth(istID,secret):
         if int(istID) in ADMIN:
             return redirect(url_for('.AdminIndex',istID = istID))
         else:    
-            return redirect(url_for('.QRcode',istID = istID))
+            return redirect(url_for('.UserQR',istID = istID))
     else: 
         abort(404)
 
