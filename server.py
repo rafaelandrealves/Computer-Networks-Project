@@ -116,7 +116,6 @@ def gateAuth():
         return render_template("badlogin.html")
 
     res = requests.get("http://localhost:8003/gate/GateSecret/"+str(data.get('gateID')), allow_redirects=True, json={"secret": data.get('gateSecret')}).json()
-    # session['gateSecret'] = data.get('gateSecret')
     if res["Valid"]=='1':
         session["gateID"] = data.get('gateID')
         session["gateSecret"] = data.get('gateSecret')
@@ -126,6 +125,11 @@ def gateAuth():
     
 @app.route("/gateQR/<path:gateID>")
 def gateQR(gateID):
+    try:
+        session["gateID"]
+    except:
+        return render_template("badlogin.html")
+    
     if session["gateID"] == gateID:
         return app.send_static_file("qrcode.html")
     return render_template_string("THE ID AND SECRET DONT MATCH")
@@ -133,14 +137,13 @@ def gateQR(gateID):
 # TODO Erro quando faço reload -> gateID
 @app.route("/gate_scan",methods = ['POST', 'GET'])
 def gate_scan():
-    # FAZER
-    
-    # data = request.json
+
     data = request.get_json()
     try:
         data['qr']
+        session["gateID"]
     except:
-        abort(404)
+        abort(400)
     try:
         user = requests.get(URL_DB_user+"user/bycode",json={'code': data['qr']}).json()["userID"]
     except:
@@ -172,7 +175,7 @@ def UserQR(istID):
     try:
         session["token"]
     except:
-        abort(400)
+        return render_template("badlogin.html")
     flag = 1
     if request.environ["HTTP_REFERER"] ==('http://localhost:5000/user/code/'+istID):
         flag = 0
@@ -197,6 +200,10 @@ def UserQR(istID):
 def user_history(istID):
 
     #REQUEST TO USER DATABASE - send new usercode to certain token
+    try:
+        session["token"]
+    except:
+        return render_template("badlogin.html")
 
     # Check if the seecret is correct with the user that is being addressed
     aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
@@ -216,8 +223,13 @@ def table_users():
 #-------------------------------------------------------------AUTH-------------------------------------------
 
 # TODO FALTA ALTERAR O QR CODE.
-@app.route("/user/authentified/<path:istID>/<path:secret>")
-def userAuth(istID,secret):
+@app.route("/user/authentified/<path:istID>")
+def userAuth(istID):
+    try:
+        session["token"]
+    except:
+        return render_template("badlogin.html")
+    
     if secret == session["token"]:
         aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':session["token"],'secret_code': ""}, allow_redirects=True).json()
         if aux["StatusCode"] == "2":
@@ -362,11 +374,7 @@ def AdminNewGate(istID):
 
 @app.route("/login")
 def demo():
-    """Step 1: User Authorization.
 
-    Redirect the user/resource owner to the OAuth provider (i.e. Github)
-    using an URL with a few key OAuth parameters.
-    """
     github = OAuth2Session(client_id, redirect_uri="http://localhost:5000/callback")
     authorization_url, state = github.authorization_url(authorization_base_url)
 
@@ -381,24 +389,11 @@ def demo():
 
 @app.route("/callback", methods=["GET"])
 def callback():
-    """ Step 3: Retrieving an access token.
 
-    The user has been redirected back from the provider to your registered
-    callback URL. With this redirection comes an authorization code included
-    in the redirect URL. We will use that to obtain an access token.
-    """
-
-    print("CALLBACK")
-
-    print(request.url)
     github = OAuth2Session(client_id, redirect_uri="http://localhost:5000/callback")
-    print(github.authorized)
     token = github.fetch_token(token_url, client_secret=client_secret,
                                authorization_response=request.url)
 
-    # At this point you can fetch protected resources but lets save
-    # the token and show how this is done from a persisted token
-    # in /profile.
     session['oauth_token'] = token
 
     return redirect(url_for('.profile'))
@@ -406,19 +401,15 @@ def callback():
 
 @app.route("/profile", methods=["GET"])
 def profile():
-    """Fetching a protected resource using an OAuth 2 token.
-    """
+
     github = OAuth2Session(client_id, token=session['oauth_token'])
-    # try:
     Info = jsonify(github.get('https://fenix.tecnico.ulisboa.pt/api/fenix/v1/person').json())
-    # messages = {'Authentified':True,'Secret Key':app.secret_key}
-    # return  redirect(url_for('.user', message = messages))
 
     ist_ID = github.get('https://fenix.tecnico.ulisboa.pt/api/fenix/v1/person').json()["username"]
     session["userID"] = str(ist_ID).strip('ist')
     session["token"] = randalph(12)
     
-    return redirect(url_for('.userAuth',istID=session["userID"],secret=session["token"]))
+    return redirect(url_for('.userAuth',istID=session["userID"]))
  
 
 
