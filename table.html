@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css"  href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.css">
+    <script  src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.7/dist/semantic.js">  </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-xmlrpc/0.4.3/jquery.xmlrpc.js"> </script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <link href="https://vjs.zencdn.net/7.8.4/video-js.css" rel="stylesheet" />
+    <script src="http://vjs.zencdn.net/7.8.4/video.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-youtube/2.6.1/Youtube.min.js"></script>
+
+
+
+
+
+
+    <script>
+        function updateuserTable(){
+            $.ajax({
+                url: '/User_reg',
+                type: "GET",
+                dataType: "json",
+                success: function (data) {
+                    console.log(data);
+                    // O que é o tbody?
+                    $('#userTable > tbody:last-child').empty()
+                    data["history"].forEach(v => {
+                        console.log(v["id_user_occurence"]+" "+v["gate_id"]+" "+v["Date"])
+                        $('#userTable > tbody:last-child').
+                            append('<tr> <td>'+ v["id_user_occurence"]+'</td><td>' +v["gate_id"] + '</td><td>'+v["Date"] + '</td></tr>');
+                        // TODO  10 - Fill the column with the number of views of each video
+                    });
+                }
+            });
+        }
+        $(document).ready(function(){
+            //TODO 1 - configure the $("#buttonUpdateVideotable") 
+            // to update the table when clicked
+            updateuserTable()
+            $("#buttonUpdateUsertable").click(function(){
+              updateuserTable()
+
+            });
+            
+
+        });
+
+    </script>
+
+  </head>
+  <body>
+    <h3>History of Occurrences</h3>
+    <table class="ui celled table selectable" id="userTable" >
+      <thead>
+        <tr>
+          <th>User ID</th> <th>Gate ID</th> <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+    <button class="ui button" id="buttonUpdateUsertable">
+      Update List
+    </button>
+
+    
+
+  </body>
+
+</html>
