@@ -8,7 +8,7 @@
       }
 	  div {text-align: center;font-size: 100px;}
     </style>
-	<script>var deltat = 5;</script>
+	<script>var deltat = 0;</script>
   </head>
   <body style="background-color:red;">
   
@@ -34,10 +34,23 @@
             }
         });
 		
-        scanner.addListener('scan', function(content) {
+      scanner.addListener('scan', function(content) {
 			document.getElementById('qr').value = content;
 			//MANDAR PEDIDO AJAX AQUI
-			deltat = 5;
+      scan_data = {'qr':content};
+      $.ajax({
+                url: '/gate_scan',
+                type: "GET",
+                dataType: "json",
+                contentType: 'application/json',
+                data: JSON.stringify(scan_data),
+                success: function (data) {
+                  if (data["open"] == "1") {
+                    deltat = 5
+                  }
+                    
+        }})
+        
         });
     </script>
 	
