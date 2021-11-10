@@ -244,24 +244,21 @@ def table_users():
 #             return redirect(url_for('.UserQR',istID = istID))
 #     else: 
 #         abort(404)
-@app.route("/user/authentified/<path:istID>/<path:secret>")
-def userAuth(istID,secret):
+@app.route("/user/authentified/<path:istID>")
+def userAuth(istID):
     try:
         session["token"]
     except:
         return render_template("badlogin.html")
-
-    if secret == session["token"]:
-        aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':session["token"],'secret_code': ""}, allow_redirects=True).json()
-        if aux["StatusCode"] == "2":
-            abort(404)
-
-        if int(istID) in ADMIN:
-            return redirect(url_for('.AdminIndex',istID = istID))
-        else:    
-            return redirect(url_for('.UserQR',istID = istID))
-    else: 
+    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+    if aux.json()['StatusCode'] == "2":
         abort(404)
+
+    if int(istID) in ADMIN:
+        return redirect(url_for('.AdminIndex',istID = istID))
+    else:    
+        return redirect(url_for('.UserQR',istID = istID))
+
 
 
 #-----------------------------------------------ADMIN----------------------------------------------------------
@@ -430,8 +427,9 @@ def profile():
     ist_ID = github.get('https://fenix.tecnico.ulisboa.pt/api/fenix/v1/person').json()["username"]
     session["userID"] = str(ist_ID).strip('ist')
     session["token"] = randalph(12)
-    
-    return redirect(url_for('.userAuth',istID=session["userID"],secret = session["token"]))
+    aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':session["userID"],'token':session["token"],'secret_code': ""}, allow_redirects=True).json()
+
+    return redirect(url_for('.userAuth',istID=session["userID"]))
  
 
 
