@@ -49,13 +49,13 @@ def newGatesRequest():
     try:     
         status = GateData.newGate(int(data["gateID"]),data["gateLocation"],secret_number,0)
     except:
-        return jsonify({'Secret Number':'', 'StatusCode':'2', 'Description':'Err'})
+        return jsonify({'StatusCode':'2', 'Description':'Err'})
     if status:    
         #return the secret number as JSON
-        return jsonify({'Secret Number':secret_number,'StatusCode':'1','Description':'OK'})
+        return jsonify({'StatusCode':'1', 'Description':'OK'})
     else:
         # The ID already exists - Not Admitted
-        return jsonify({'Secret Number':'','StatusCode':'3','Description':'NA'})
+        return jsonify({'StatusCode':'3', 'Description':'ID Already Exists'})
 
 
 # Endpoint to increase the gate activation number

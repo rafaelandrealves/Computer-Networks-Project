@@ -50,13 +50,13 @@ def newOccurrenceRequest():
     try:     
         status = gateHistory.newOcurrence(int(data["gate_id"]),data["Status"],datetime.datetime.now())
     except:
-        return jsonify({'Secret Number':'', 'StatusCode':'2', 'Description':'Err'})
+        return jsonify({'StatusCode':'2', 'Description':'Err'})
     if status:    
         #return the secret number as JSON
-        return jsonify({'Secret Number':int(data["gate_id"]),'StatusCode':'1','Description':'OK'})
+        return jsonify({'StatusCode':'1', 'Description':'OK'})
     else:
         # The ID already exists - Not Admitted
-        return jsonify({'Secret Number':'','StatusCode':'3','Description':'NA'})
+        return jsonify({'StatusCode':'3', 'Description':'ID Already Exists'})
 
 
 #Start server

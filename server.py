@@ -135,6 +135,7 @@ def gateQR(gateID):
     return render_template_string("THE ID AND SECRET DONT MATCH")
 
 # TODO Erro quando faço reload -> gateID
+# TODO ACtivations Number não está a dar update
 @app.route("/gate_scan",methods = ['POST', 'GET'])
 def gate_scan():
 
@@ -157,6 +158,8 @@ def gate_scan():
 
     if aux["StatusCode"] == "1":
         aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':session["gateID"],'Status':'OPEN'},allow_redirects=True)
+        Status = requests.get(URL_DB_gates + session["gateID"] + "/admission",allow_redirects=True)
+    
         return jsonify({'open': 1})
     else:
         aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
@@ -221,15 +224,33 @@ def table_users():
 
 
 #-------------------------------------------------------------AUTH-------------------------------------------
-
+## TODO Estava a dar erro com o secret, pensoq ue se tem de mandar, o prof disse na altura que era sem stresses
 # TODO FALTA ALTERAR O QR CODE.
-@app.route("/user/authentified/<path:istID>")
-def userAuth(istID):
+# @app.route("/user/authentified/<path:istID>")
+# def userAuth(istID):
+#     try:
+#         session["token"]
+#     except:
+#         return render_template("badlogin.html")
+    
+#     if  == session["token"]:
+#         aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':session["token"],'secret_code': ""}, allow_redirects=True).json()
+#         if aux["StatusCode"] == "2":
+#             abort(404)
+
+#         if int(istID) in ADMIN:
+#             return redirect(url_for('.AdminIndex',istID = istID))
+#         else:    
+#             return redirect(url_for('.UserQR',istID = istID))
+#     else: 
+#         abort(404)
+@app.route("/user/authentified/<path:istID>/<path:secret>")
+def userAuth(istID,secret):
     try:
         session["token"]
     except:
         return render_template("badlogin.html")
-    
+
     if secret == session["token"]:
         aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':session["token"],'secret_code': ""}, allow_redirects=True).json()
         if aux["StatusCode"] == "2":
@@ -241,6 +262,7 @@ def userAuth(istID):
             return redirect(url_for('.UserQR',istID = istID))
     else: 
         abort(404)
+
 
 #-----------------------------------------------ADMIN----------------------------------------------------------
 # Admin Interface
@@ -409,7 +431,7 @@ def profile():
     session["userID"] = str(ist_ID).strip('ist')
     session["token"] = randalph(12)
     
-    return redirect(url_for('.userAuth',istID=session["userID"]))
+    return redirect(url_for('.userAuth',istID=session["userID"],secret = session["token"]))
  
 
 

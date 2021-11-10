@@ -27,9 +27,9 @@
                     // O que é o tbody?
                     $('#userTable > tbody:last-child').empty()
                     data["history"].forEach(v => {
-                        console.log(v["id_user_occurence"]+" "+v["gate_id"]+" "+v["Date"])
+                        console.log(v["user"]+" "+v["gate_id"]+" "+v["Date"])
                         $('#userTable > tbody:last-child').
-                            append('<tr> <td>'+ v["id_user_occurence"]+'</td><td>' +v["gate_id"] + '</td><td>'+v["Date"] + '</td></tr>');
+                            append('<tr> <td>'+ v["user"]+'</td><td>' +v["gate_id"] + '</td><td>'+v["Date"] + '</td></tr>');
                         // TODO  10 - Fill the column with the number of views of each video
                     });
                 }

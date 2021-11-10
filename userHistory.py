@@ -4,7 +4,7 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy import Column, Integer, String, Date, DateTime
 from sqlalchemy.orm import sessionmaker
 
 # -- ADINT Intermidiate Project
@@ -34,12 +34,12 @@ class userHistory(Base):
     id_user_occurence = Column(Integer,primary_key=True)
     user = Column(String)
     gate_id = Column(String)
-    Date = Column(Date)
+    Date = Column(DateTime)
     def __repr__(self):
         return "<userHistory(id_user_occurence='%d' user='%s' gate_id='%d' Date='%s')>" % (
                                 self.id_user_occurence,self.user,self.gate_id,self.Date)
     def to_dictionary(self):
-        return {"id_user_occurence": self.id_user_occurence, "user": self.user, "gate_id": self.gate_id,"Date": self.Date}
+        return {"id_user_occurence": self.id_user_occurence, "user": self.user, "gate_id": self.gate_id,"Date": str(self.Date)}
 
 
 Base.metadata.create_all(engine) #Create tables for the data models
