@@ -1,14 +1,39 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
   <h3>Index Admin</h3>
       <div>
         <ul>
-          <li> <a href = '/user/code/{{istID}}'> User </a></li>
-          <li> <a href =  '/user/code/{{istID}}/history' > User History</a></li>
-          <li> <a href = '/Admin/{{istID}}/newGate'> Create New gate </a></li>
-          <li> <a href = '/Admin/{{istID}}/Gates'> List Gate </a></li>
-          <li> <a href = '/Admin/{{istID}}/GatesHistory'> Gate History </a></li>
+          <a href = '/user/code/{{istID}}'> <button type="button">User </button> </a>
+           <a href =  '/user/code/{{istID}}/history' > <button type="button">User History </button> </a>
+           <a href = '/Admin/{{istID}}/newGate'> <button type="button">Create New gate </button> </a>
+           <a href = '/Admin/{{istID}}/Gates'> <button type="button">List Gate </button> </a>
+           <a href = '/Admin/{{istID}}/GatesHistory'> <button type="button">Gate History </button> </a>
 
         </ul>
       </div>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <h3>Index Admin</h3>
+  </head>
+  <body>
+    <button onclick="window.location.href='/user/code/{{istID}}';">
+      User
+    </button>
+    <button onclick="window.location.href='/user/code/{{istID}}/history';">
+      User History
+    </button>
+    <button onclick="window.location.href='/Admin/{{istID}}/newGate';">
+      Create New gate
+    </button>
+    <button onclick="window.location.href='/Admin/{{istID}}/Gates';">
+      List Gate
+    </button>
+    <button onclick="window.location.href='/Admin/{{istID}}/GatesHistory';">
+      Gate History
+    </button>
+  </body>
 </html>
+
