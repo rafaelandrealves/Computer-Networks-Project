@@ -1,6 +1,7 @@
 
 ##################### Library Imports #####################
 
+from logging import warning
 from flask import Flask, request, jsonify, abort,render_template,render_template_string, redirect, url_for,session
 from random import randrange
 from requests_oauthlib import OAuth2Session
@@ -8,7 +9,8 @@ import json
 import requests
 import os
 from configparser import ConfigParser
-
+from proxy import *
+import warnings
 # -- ADINT Intermidiate Project
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
 
@@ -115,7 +117,7 @@ def gateAuth():
     except:
         return render_template("badlogin.html")
 
-    res = requests.get("http://localhost:8003/gate/GateSecret/"+str(data.get('gateID')), allow_redirects=True, json={"secret": data.get('gateSecret')}).json()
+    res = checkgates(data.get('gateID'),data.get('gateSecret'))
     if res["Valid"]=='1':
         session["gateID"] = data.get('gateID')
         session["gateSecret"] = data.get('gateSecret')
@@ -148,7 +150,15 @@ def gate_scan():
     try:
         user = requests.get(URL_DB_user+"user/bycode",json={'code': data['qr']}).json()["userID"]
     except:
-        aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
+        aux = newGateOcco(session["gateID"],"CLOSED")
+
+        if aux == 2:
+            warnings.warn('The Backup DATABASE could not Update')
+        if aux == 3:
+            warnings.warn('The Main DATABASE could not Update')
+        if aux == 0:
+            warnings.warn('Both DATABASES could not Update')
+     
         return jsonify({'open': 0})
     # Còdigo para ANALISAR Gate para abrir ou não
 
@@ -157,12 +167,30 @@ def gate_scan():
     aux = requests.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
 
     if aux["StatusCode"] == "1":
-        aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':session["gateID"],'Status':'OPEN'},allow_redirects=True)
-        Status = requests.get(URL_DB_gates + session["gateID"] + "/admission",allow_redirects=True)
-    
+        aux = newGateOcco(session["gateID"],"OPEN")
+        if aux == 2:
+            warnings.warn('The Backup DATABASE could not Update')
+        if aux == 3:
+            warnings.warn('The Main DATABASE could not Update')
+        if aux == 0:
+            warnings.warn('Both DATABASES could not Update')
+
+        aux = updateAct(session["gateID"])
+        if aux == 2:
+            warnings.warn('The Backup DATABASE could not Update')
+        if aux == 3:
+            warnings.warn('The Main DATABASE could not Update')
+        if aux == 0:
+            warnings.warn('Both DATABASES could not Update')
         return jsonify({'open': 1})
     else:
-        aux = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':session["gateID"],'Status':'CLOSED'},allow_redirects=True)
+        aux = newGateOcco(session["gateID"],"CLOSED")
+        if aux == 2:
+            warnings.warn('The Backup DATABASE could not Update')
+        if aux == 3:
+            warnings.warn('The Main DATABASE could not Update')
+        if aux == 0:
+            warnings.warn('Both DATABASES could not Update')
 
     return jsonify({'open': 0}) 
 
@@ -194,7 +222,7 @@ def UserQR(istID):
         # TODO METER CHECK DENTRO UPDATE
 
         # Check if the seecret is correct with the user that is being addressed
-        return render_template("qrgen.html", code=session["usercode"]), 201
+        return render_template("qrgen.html", code=session["usercode"], istID = istID), 201
     else:
         return render_template_string('Credentials don\'t match!')
 
@@ -213,7 +241,7 @@ def user_history(istID):
     if aux.json()['StatusCode'] == '2':
         return render_template("badlogin.html")
 
-    return render_template("table.html"), 201
+    return render_template("table.html", istID = istID), 201
 
 
 
@@ -255,10 +283,23 @@ def userAuth(istID):
         abort(404)
 
     if int(istID) in ADMIN:
-        return redirect(url_for('.AdminIndex',istID = istID))
+        return redirect(url_for('.ClientIndex',istID = istID))
     else:    
-        return redirect(url_for('.UserQR',istID = istID))
+        return redirect(url_for('.userIndex',istID = istID))
 
+# User Interface
+@app.route("/user/<path:istID>")
+def userIndex(istID):
+    try:
+        int(istID)
+        session["token"]
+    except:
+        return render_template("badlogin.html")
+    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+    if aux.json()['StatusCode'] == '1':
+        return render_template("IndexUser.html",istID = istID)
+    else:
+        return render_template("badlogin.html")
 
 
 #-----------------------------------------------ADMIN----------------------------------------------------------
@@ -283,6 +324,22 @@ def AdminIndex(istID):
             return render_template("badlogin.html")
     return render_template("notadmin.html")
 
+# Admin Interface
+@app.route("/<path:istID>")
+def ClientIndex(istID):
+    try:
+        int(istID)
+        session["token"]
+    except:
+        return render_template("badlogin.html")
+    if int(istID) in ADMIN:
+        aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+        if aux.json()['StatusCode'] == '1':
+            return render_template("ClientIndex.html",istID = istID)
+        else:
+            return render_template("badlogin.html")
+    return render_template("notadmin.html")
+
 # List the Active Gates
 @app.route("/Admin/<path:istID>/Gates")
 def AdminGates(istID):
@@ -294,8 +351,7 @@ def AdminGates(istID):
     aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
-            Gates_list=requests.get(URL_DB_gates + "listGates", allow_redirects=True).json()
-
+            Gates_list=listgates()
             if Gates_list["StatusCode"] == '1' and Gates_list["Gates"]:
                 return render_template_string(teste_table(Gates_list["Gates"],0),istID = istID)
             else:
@@ -315,7 +371,7 @@ def AdminGatesHist(istID):
     aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
-            l = requests.get(URL_DB_gates_hist + "history", allow_redirects=True).json()
+            l = gateshistory()
 
             if l["history"]:
                 return render_template_string(teste_table(l["history"],0),istID = istID)
@@ -333,7 +389,8 @@ def AdminGateHist(istID, gateID):
         session["token"]
     except:
         return render_template("badlogin.html")
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':str(app.secret_key)},allow_redirects=True)
+    aux = gateshistorybyID(gateID)
+
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             l = requests.get(URL_DB_gates_hist + str(gateID) + "/history", allow_redirects=True).json()
@@ -365,7 +422,6 @@ def AdminNewGate(istID):
                 except:
                     return render_template("showCreated.html",message='Input information may be missing!',istID = istID)
                 
-                url = URL_DB_gates + "newGates"
 
                 if not (data["gateID"] and data["gateID"].isdigit()):
                     if not data["gateLocation"]:
@@ -374,14 +430,20 @@ def AdminNewGate(istID):
                 elif not data["gateLocation"]:
                     return render_template("showCreated.html",message='Location was not correctly placed (must not be empty)!',istID = istID)
                 
-                aux = requests.post(url,json={'gateID':data["gateID"],'gateLocation':data["gateLocation"]}, allow_redirects=True)
-
-                if aux.json()['StatusCode'] == '3':
+                aux = creategates(data["gateID"],data["gateLocation"])
+                if aux == '2':
+                    warnings.warn('The Backup DATABASE could not Update')
+                    return render_template("showCreated.html",message='The Backup DATABASE could not Update',istID = istID)
+                elif aux == '3':
+                    warnings.warn('The Main DATABASE could not Update')
+                    return render_template("showCreated.html",message='The Main DATABASE could not Update',istID = istID)
+                elif aux == '0':
+                    warnings.warn('Both DATABASES could not Update')
+                    return render_template("showCreated.html",message='Both DATABASES could not Update',istID = istID)
+                elif aux == '4':
                     return render_template("showCreated.html",message='ID was already Taken - No Gate Created!',istID = istID)
-                elif aux.json()['StatusCode'] == '2':
-                    return render_template("showCreated.html",message='Database Session Failure!',istID = istID)
                 else:
-                    new = "Gate ID: "+str(data["gateID"])+"\n, Location: "+data["gateLocation"]+"\n, Secret Number: "+str(aux.json()['Secret Number'])
+                    new = "Gate ID: "+str(data["gateID"])+"\n, Location: "+data["gateLocation"]+"\n, Secret Number: "+str(aux)
                     return render_template("showCreated.html",message=new,istID = istID), 201
             else:
                 return render_template("newGate.html",istID = istID)
