@@ -17,33 +17,51 @@ def creategates(gateID,gateLocation):
     url1 = URL_DB_gates + "newGates"
     url2 = URL_DB_gates_rep + "newGates"
 
-    aux1 = requests.post(url1,json={'gateID':gateID,'gateLocation':gateLocation}, allow_redirects=True)
-    aux2 = requests.post(url2,json={'gateID':gateID,'gateLocation':gateLocation}, allow_redirects=True)
-    
-    if aux1.json()['StatusCode'] == '1' and aux2.json()['StatusCode'] == '1':
+    try:
+        aux1 = requests.post(url1,json={'gateID':gateID,'gateLocation':gateLocation}, allow_redirects=True)
+        Flag1 = aux1.json()['StatusCode']
+    except:
+        Flag1 = 0
+    try:
+        aux2 = requests.post(url2,json={'gateID':gateID,'gateLocation':gateLocation}, allow_redirects=True)
+        Flag2 = aux2.json()['StatusCode']
+    except:
+        Flag2 = 0
+
+
+    if Flag1 == '1' and Flag2 == '1':
         return aux1.json()['SecretNumber']
-    elif aux1.json()['StatusCode'] == '3' or aux2.json()['StatusCode'] == '3':
+    elif Flag1 == '3' or Flag2 == '3':
         return '4'    
-    elif aux1.json()['StatusCode'] == '1':
+    elif Flag1 == '1':
         return '2'
-    elif  aux2.json()['StatusCode'] == '1':
+    elif Flag2 == '1':
         return '3'
     else:
         return '0'
 
 def updateAct(gateID):
+    try:
+        aux1 = requests.get(URL_DB_gates + gateID + "/admission",allow_redirects=True)
+        Flag1 = aux1.json()['StatusCode']
+    except:
+        Flag1 = 0
+    try:
+        aux2 = requests.get(URL_DB_gates_rep + gateID + "/admission",allow_redirects=True)
+        Flag2 = aux2.json()['StatusCode']
+    except:
+        Flag2 = 0
 
-    aux1 = requests.get(URL_DB_gates + gateID + "/admission",allow_redirects=True)
-    aux2 = requests.get(URL_DB_gates_rep + gateID + "/admission",allow_redirects=True)
-
-    if aux1.json()['StatusCode'] == '1' and aux2.json()['StatusCode'] == '1':
+    if Flag1 == '1' and Flag2 == '1':
         return 1
-    elif aux1.json()['StatusCode'] == '1':
-        return 2
-    elif  aux2.json()['StatusCode'] == '1':
-        return 3
+    elif Flag1 == '3' or Flag2 == '3':
+        return '4'    
+    elif Flag1 == '1':
+        return '2'
+    elif Flag2 == '1':
+        return '3'
     else:
-        return 0
+        return '0'
 
 
 
@@ -73,14 +91,26 @@ def gateshistorybyID(gateID):
 
 def newGateOcco(gateID,status):
 
-    aux1 = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':gateID,'Status':status},allow_redirects=True)
-    aux2 = requests.post(URL_DB_gates_hist_rep+"newOccurrence",json={'gate_id':gateID,'Status':status},allow_redirects=True)
+    try:
+        aux1 = requests.post(URL_DB_gates_hist+"newOccurrence",json={'gate_id':gateID,'Status':status},allow_redirects=True)
+        Flag1 = aux1.json()['StatusCode']
+    except:
+        Flag1 = 0
+    try:
+        aux2 = requests.post(URL_DB_gates_hist_rep+"newOccurrence",json={'gate_id':gateID,'Status':status},allow_redirects=True)
+        Flag2 = aux2.json()['StatusCode']
+    except:
+        Flag2 = 0
 
-    if aux1.json()['StatusCode'] == '1' and aux2.json()['StatusCode'] == '1':
+    if Flag1 == '1' and Flag2 == '1':
         return 1
-    elif aux1.json()['StatusCode'] == '1':
-        return 2
-    elif  aux2.json()['StatusCode'] == '1':
-        return 3
+    elif Flag1 == '3' or Flag2 == '3':
+        return '4'    
+    elif Flag1 == '1':
+        return '2'
+    elif Flag2 == '1':
+        return '3'
     else:
-        return 0
+        return '0'
+
+    
