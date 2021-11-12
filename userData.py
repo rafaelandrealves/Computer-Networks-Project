@@ -4,8 +4,9 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime, timedelta
 
 # -- ADINT Intermidiate Project
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
@@ -34,11 +35,12 @@ class userTable(Base):
     user_id = Column(Integer,primary_key=True)
     token = Column(String)
     secret_code = Column(String)
+    creation_time = Column(DateTime)
     def __repr__(self):
-        return "<userTable(user_id='%d' token='%s' secret_code='%s')>" % (
-                                self.user_id,self.token,self.secret_code)
+        return "<userTable(user_id='%d' token='%s' secret_code='%s' creation_time='%s')>" % (
+                                self.user_id,self.token,self.secret_code,self.creation_time)
     def to_dictionary(self):
-        return {"user_id": self.user_id, "token": self.token, "secret_code": self.secret_code}
+        return {"user_id": self.user_id, "token": self.token, "secret_code": self.secret_code, "creation_time": str(self.creation_time)}
 
 
 Base.metadata.create_all(engine) #Create tables for the data models
@@ -69,7 +71,9 @@ def newUser(new_user_id, new_token, new_secret_code):
     if aux:
         return 0
     else:
-        auth = userTable(user_id = new_user_id, token = str(new_token), secret_code=new_secret_code)
+        time = datetime.now() - timedelta(hours=1)
+
+        auth = userTable(user_id = new_user_id, token = str(new_token), secret_code=new_secret_code, creation_time = time)
         session.add(auth)
         try:
             session.commit()
@@ -105,10 +109,12 @@ def UpdateuserToken(user_id,new_token):
         return 0
 
 # Replace Activation Code
-def UpdateuserSecret(user_id,new_secret):
+def UpdateuserSecret(user_id,new_secret,delay=0):
     aux = CheckuserID(user_id)
     if aux:
-        session.query(userTable).filter(userTable.user_id==user_id).first().secret_code = new_secret
+        user = session.query(userTable).filter(userTable.user_id==user_id).first()
+        user.secret_code = new_secret
+        user.creation_time = datetime.now() - timedelta(hours=delay)
         try :
             session.commit()
         except:
@@ -118,7 +124,15 @@ def UpdateuserSecret(user_id,new_secret):
         return 0
 
 
-# # Get gate info
-# def GetOccurrencesFrom(date_check):
-#     return session.query(userTable).filter(userTable.Date > date_check).all()
+def CheckCreaTime(user_id):
+    user = session.query(userTable).filter(userTable.user_id==user_id).first()
+
+    if user:
+        delta = datetime.now() - user.creation_time
+        if delta.days > 0 or delta.seconds > 60:
+            return 0
+        else:
+            return 1
+    return 0
+
     

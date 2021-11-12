@@ -160,9 +160,6 @@ def gate_scan():
             warnings.warn('Both DATABASES could not Update')
      
         return jsonify({'open': 0})
-    # Còdigo para ANALISAR Gate para abrir ou não
-
-    # INSERÇÃO BASE DE DADOS
 
     aux = requests.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
 
@@ -252,26 +249,6 @@ def table_users():
 
 
 #-------------------------------------------------------------AUTH-------------------------------------------
-## TODO Estava a dar erro com o secret, pensoq ue se tem de mandar, o prof disse na altura que era sem stresses
-# TODO FALTA ALTERAR O QR CODE.
-# @app.route("/user/authentified/<path:istID>")
-# def userAuth(istID):
-#     try:
-#         session["token"]
-#     except:
-#         return render_template("badlogin.html")
-    
-#     if  == session["token"]:
-#         aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':istID,'token':session["token"],'secret_code': ""}, allow_redirects=True).json()
-#         if aux["StatusCode"] == "2":
-#             abort(404)
-
-#         if int(istID) in ADMIN:
-#             return redirect(url_for('.AdminIndex',istID = istID))
-#         else:    
-#             return redirect(url_for('.UserQR',istID = istID))
-#     else: 
-#         abort(404)
 @app.route("/user/authentified/<path:istID>")
 def userAuth(istID):
     try:
