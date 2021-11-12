@@ -38,7 +38,7 @@ class userTable(Base):
     creation_time = Column(DateTime)
     def __repr__(self):
         return "<userTable(user_id='%d' token='%s' secret_code='%s' creation_time='%s')>" % (
-                                self.user_id,self.token,self.secret_code,self.creation_time)
+                                self.user_id,self.token,self.secret_code,str(self.creation_time))
     def to_dictionary(self):
         return {"user_id": self.user_id, "token": self.token, "secret_code": self.secret_code, "creation_time": str(self.creation_time)}
 

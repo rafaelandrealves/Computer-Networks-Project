@@ -93,7 +93,7 @@ def CheckbyCode():
     user = userData.GetUserbyAC(data['code'])
 
     if user:
-        if userData.CheckCreaTime(user) and userData.UpdateuserSecret(user,"",1):
+        if userData.CheckCreaTime(user.user_id) and userData.UpdateuserSecret(user.user_id,"",1):
             return jsonify({'userID': user.user_id})
         else:
             return jsonify({})
