@@ -3,11 +3,11 @@
 import userData
 from flask import Flask, request, jsonify, abort
 
-# -- ADINT Intermidiate Project
+# -- ADINT Final Project
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
 
 # ----------------------------------------
-# --------------Gate Data Server----------
+# --------------User Data Server----------
 # ----------------------------------------
 
 
@@ -15,7 +15,7 @@ from flask import Flask, request, jsonify, abort
 app = Flask(__name__)
 
 
-# Database endpoint for adding new gates
+# Database endpoint for adding new user
 @app.route("/users/newuser",methods = ['POST'])
 def newUserRequest():
     
@@ -28,13 +28,13 @@ def newUserRequest():
         data["secret_code"]
     except:
         abort(400)
-    # Call query in GateData to create a new gate and add it do the database
+
     try:     
         status = userData.newUser(int(data["user_id"]),data["token"],data["secret_code"])
     except:
         return jsonify({'StatusCode':'2', 'Description':'Err'})
     if status:    
-        #return the secret number as JSON
+
         return jsonify({'StatusCode':'1','Description':'OK'})
     else:
         # The ID already exists - Not Admitted
@@ -42,8 +42,8 @@ def newUserRequest():
         return jsonify({'StatusCode':'3','Description':'Updated Token'})
 
 
-# Database endpoint for adding new gates
-@app.route("/user/check",methods = ['POST'])
+
+@app.route("/user/check",methods = ['GET'])
 def CheckUser():
     #retrieve data from input JSON body 
     data = request.json
@@ -60,7 +60,7 @@ def CheckUser():
         return jsonify({'StatusCode':'2','Description':'Err'})
 
 
-# Database endpoint for adding new gates
+
 @app.route("/user/<path:istID>/updateCode",methods = ['POST'])
 def UpdateUserCode(istID):
     #retrieve data from input JSON body 

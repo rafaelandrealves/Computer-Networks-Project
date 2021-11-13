@@ -4,11 +4,11 @@ import gateHistory
 from flask import Flask, request, jsonify, abort
 import datetime
 
-# -- ADINT Intermidiate Project
+# -- ADINT Final Project
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
 
 # ----------------------------------------
-# --------------Gate Data Server----------
+# --------------Gate History Server----------
 # ----------------------------------------
 
 
@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 @app.route("/gate/occurrences/history",methods = ['GET'])
 def listHistRequest():
-    # Call a query to list the active gates
+    # Call a query to list the occurrences
     User_list = gateHistory.getgateHistory()
     result1 = [{'id_gate_occurence':item.id_gate_occurence,'gate_id':item.gate_id,'Status':item.Status,'Date':item.Date} for item in User_list]
 
@@ -26,14 +26,14 @@ def listHistRequest():
 
 @app.route("/gate/occurrences/<path:gateID>/history",methods = ['GET'])
 def listGateHistRequest(gateID):
-    # Call a query to list the active gates
+
     User_list = gateHistory.GetGateOccurrences(gateID)
     result1 = [{'id_gate_occurence':item.id_gate_occurence,'gate_id':item.gate_id,'Status':item.Status,'Date':item.Date} for item in User_list]
 
     return jsonify({"history": result1})
         
-# TODO CENA das sessons não inicializadas
-# Database endpoint for adding new gates´
+
+
 @app.route("/gate/occurrences/newOccurrence",methods = ['POST'])
 def newOccurrenceRequest():
     
@@ -46,7 +46,6 @@ def newOccurrenceRequest():
     except:
         abort(400)
 
-    # Call query in userData to create a new gate and add it do the database
     try:     
         status = gateHistory.newOcurrence(int(data["gate_id"]),data["Status"],datetime.datetime.now())
     except:

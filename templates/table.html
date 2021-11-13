@@ -26,15 +26,20 @@
                 type: "GET",
                 dataType: "json",
                 success: function (data) {
-                    console.log(data);
+                  console.log(data);
+                  $('#userTable > tbody:last-child').empty()
+                  if (data.length === 0){
+                    $('#userTable > tbody:last-child').
+                          append('<tr> <td>'+ "Not available"+'</td><td>' + "Not available" + '</td><td>'+ "Not available" + '</td></tr>');
+                  }else{
                     // O que é o tbody?
-                    $('#userTable > tbody:last-child').empty()
                     data["history"].forEach(v => {
                         console.log(v["user"]+" "+v["gate_id"]+" "+v["Date"])
                         $('#userTable > tbody:last-child').
                             append('<tr> <td>'+ v["user"]+'</td><td>' +v["gate_id"] + '</td><td>'+v["Date"] + '</td></tr>');
                         // TODO  10 - Fill the column with the number of views of each video
                     });
+                  }
                 }
             });
         }

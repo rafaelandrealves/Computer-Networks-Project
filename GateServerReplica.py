@@ -5,11 +5,11 @@ from flask import Flask, request, jsonify, abort
 from random import randint
 
 
-# -- ADINT Intermidiate Project
+# -- ADINT Final Project
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
 
 # ----------------------------------------
-# --------------Gate Data Server----------
+# --------------Gate Data Server Replica--
 # ----------------------------------------
 
 

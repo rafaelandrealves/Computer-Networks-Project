@@ -8,14 +8,14 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 
-# -- ADINT Intermidiate Project
+# -- ADINT Final Project
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
 
 # ----------------------------------------
 # --------------USER DATA-----------------
 # ----------------------------------------
 #
-# #  OS três egmentos do servidor podem estar no mesmo flask, mas têm de ter grupos de endpoints específicos
+
 
 #SLQ access layer initialization
 DATABASE_FILE = "user_db.sqlite"

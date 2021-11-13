@@ -7,11 +7,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Date, DateTime
 from sqlalchemy.orm import sessionmaker
 
-# -- ADINT Intermidiate Project
+# -- ADINT Final Project
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
 
 # ----------------------------------------
-# --------------GATE DATA-----------------
+# --------------User History--------------
 # ----------------------------------------
 
 
@@ -79,11 +79,9 @@ def newOcurrence(new_user, new_gate_id,new_Date):
 def CheckOccurrenceID(new_id_user_occurence):
     return session.query(userHistory).filter(userHistory.id_user_occurence==new_id_user_occurence).first() is not None
 
-# Get gate info
+# Get user info
 def GetUserOccurrences(new_user):
     return session.query(userHistory).filter(userHistory.user==new_user).all()
     
-# # Get gate info
-# def GetOccurrencesFrom(date_check):
-#     return session.query(userTable).filter(userTable.Date > date_check).all()
-    
+
+

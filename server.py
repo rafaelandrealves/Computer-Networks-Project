@@ -11,7 +11,7 @@ import os
 from configparser import ConfigParser
 from proxy import *
 import warnings
-# -- ADINT Intermidiate Project
+# -- ADINT Final Project
 # -- Made by: Diogo Ferreira and Rafael Cordeiro
 
 # ----------------------------------------
@@ -19,9 +19,6 @@ import warnings
 # ----------------------------------------
 
 
-# TODO P
-# Falta as verificações
-# A data ta só com ano,mes,dia 
 
 
 URL_DB_user_hist = "http://localhost:8000/"
@@ -99,7 +96,7 @@ def draw_table(d):
 app = Flask(__name__)
 
 #------------------------------------------GATE--------------------------
-@app.route("/",methods = ['POST', 'GET'])
+@app.route("/")
 def index():
     return render_template("index.html")
 
@@ -115,7 +112,7 @@ def gateAuth():
         int(data.get('gateID'))
         data.get('gateSecret')
     except:
-        return render_template("badlogin.html")
+        return render_template("badinput.html"), 400
 
     res = checkgates(data.get('gateID'),data.get('gateSecret'))
     if res["Valid"]=='1':
@@ -123,22 +120,22 @@ def gateAuth():
         session["gateSecret"] = data.get('gateSecret')
         return redirect(url_for('.gateQR',gateID = str(data.get('gateID'))))
     else:
-        return render_template("badlogin.html")
-    
+        return render_template("badlogin.html"), 401
+
+# Gate Display
 @app.route("/gateQR/<path:gateID>")
 def gateQR(gateID):
     try:
         session["gateID"]
     except:
-        return render_template("badlogin.html")
+        return render_template("badinput.html"), 400
     
     if session["gateID"] == gateID:
         return app.send_static_file("qrcode.html")
-    return render_template_string("THE ID AND SECRET DONT MATCH")
+    return render_template("badlogin.html"), 401
 
-# TODO Erro quando faço reload -> gateID
-# TODO ACtivations Number não está a dar update
-@app.route("/gate_scan",methods = ['POST', 'GET'])
+# QR Code Validation
+@app.route("/gate_scan",methods=["GET","POST"])
 def gate_scan():
 
     data = request.get_json()
@@ -159,9 +156,11 @@ def gate_scan():
         if aux == 0:
             warnings.warn('Both DATABASES could not Update')
      
-        return jsonify({'open': 0})
-
-    aux = requests.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
+        return jsonify({'open': 0}), 201
+    try:
+        aux = requests.post(URL_DB_user_hist+"user/occurrences/newOccurrence",json={'user':str(user),'gate_id': session["gateID"]},allow_redirects=True).json()
+    except:
+       return render_template("ServerShutDown.html",db = "User Occurrences Database Server"),404
 
     if aux["StatusCode"] == "1":
         aux = newGateOcco(session["gateID"],"OPEN")
@@ -179,7 +178,7 @@ def gate_scan():
             warnings.warn('The Main DATABASE could not Update')
         if aux == 0:
             warnings.warn('Both DATABASES could not Update')
-        return jsonify({'open': 1})
+        return jsonify({'open': 1}), 201
     else:
         aux = newGateOcco(session["gateID"],"CLOSED")
         if aux == 2:
@@ -189,63 +188,81 @@ def gate_scan():
         if aux == 0:
             warnings.warn('Both DATABASES could not Update')
 
-    return jsonify({'open': 0}) 
+    return jsonify({'open': 0}), 201
 
 
 #--------------------------------------------USER------------------------------------------------------------
-@app.route("/user",methods = ['POST', 'GET'])
+@app.route("/user")
 def user():
     return redirect(url_for('.demo'))
 
-#User and Gate endpoints
-@app.route("/user/code/<path:istID>",methods = ['POST', 'GET'])
+# QR code generation
+@app.route("/user/code/<path:istID>")
 def UserQR(istID):
     try:
         session["token"]
     except:
-        return render_template("badlogin.html")
+        return render_template("badinput.html"), 400
     flag = 1
     if request.environ["HTTP_REFERER"] ==('http://localhost:5000/user/code/'+istID):
         flag = 0
 
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+    try:
+        aux = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+    except:
+        return render_template("ServerShutDown.html",db = "User Database Server"), 404
+
     if aux.json()['StatusCode'] == '1':
         if flag :
             session["usercode"] = randalph(10)
             Update_Status = requests.post(URL_DB_user+"/user/"+istID+"/updateCode",json={'istID':istID,'token':session["token"],'secret':session["usercode"]},allow_redirects=True)
             if Update_Status.json()['StatusCode'] == '2':
-                return render_template("badlogin.html")
-
-        # TODO METER CHECK DENTRO UPDATE
+                return render_template("badlogin.html"), 401
 
         # Check if the seecret is correct with the user that is being addressed
         return render_template("qrgen.html", code=session["usercode"], istID = istID), 201
     else:
-        return render_template_string('Credentials don\'t match!')
+        return render_template("badlogin.html"), 401
 
-#User and Gate endpoints
-@app.route("/user/code/<path:istID>/history",methods = ['POST', 'GET'])
+#User History
+@app.route("/user/code/<path:istID>/history")
 def user_history(istID):
 
-    #REQUEST TO USER DATABASE - send new usercode to certain token
     try:
         session["token"]
     except:
-        return render_template("badlogin.html")
+        return render_template("badinput.html"), 400
 
-    # Check if the seecret is correct with the user that is being addressed
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+    # Check if the token is correct with the user that is being addressed
+    try:
+        aux = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+    except:
+        return render_template("ServerShutDown.html",db = "User Database Server"), 404
+
     if aux.json()['StatusCode'] == '2':
-        return render_template("badlogin.html")
+        return render_template("badlogin.html"), 401
 
-    return render_template("table.html", istID = istID), 201
+    return render_template("table.html", istID = istID)
 
 
-
-# TODO MUDAR PARA SER ESPECIFICO APENAS DE UM USER
+# returns a list of occurrences
 @app.route("/User_reg")
 def table_users():
-    return  requests.get(URL_DB_user_hist+"user/occurrences/"+ session["userID"]+"/history",allow_redirects=True).json()
+    try:
+        aux = requests.get(URL_DB_user+"user/check",json={'istID':session["userID"],'token':session["token"]},allow_redirects=True)
+    except:
+        return jsonify([]), 404
+
+    if aux.json()['StatusCode'] == '2':
+        return jsonify([]), 401
+
+    try:
+        list = requests.get(URL_DB_user_hist+"user/occurrences/"+ session["userID"]+"/history",allow_redirects=True).json()
+    except:
+        return jsonify([]), 404
+ 
+    
+    return list  
 
 
 #-------------------------------------------------------------AUTH-------------------------------------------
@@ -254,10 +271,13 @@ def userAuth(istID):
     try:
         session["token"]
     except:
-        return render_template("badlogin.html")
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+        return render_template("badinput.html"), 400
+    try:
+        aux = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+    except:
+        return render_template("ServerShutDown.html",db = "User Database Server"), 404
     if aux.json()['StatusCode'] == "2":
-        abort(404)
+        return render_template("badlogin.html"), 401
 
     if int(istID) in ADMIN:
         return redirect(url_for('.ClientIndex',istID = istID))
@@ -271,12 +291,15 @@ def userIndex(istID):
         int(istID)
         session["token"]
     except:
-        return render_template("badlogin.html")
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+        return render_template("badinput.html"), 400
+    try:
+        aux = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+    except:
+        return render_template("ServerShutDown.html",db = "User Database Server"), 404
     if aux.json()['StatusCode'] == '1':
         return render_template("IndexUser.html",istID = istID)
     else:
-        return render_template("badlogin.html")
+        return render_template("badlogin.html"), 401
 
 
 #-----------------------------------------------ADMIN----------------------------------------------------------
@@ -292,30 +315,37 @@ def AdminIndex(istID):
         int(istID)
         session["token"]
     except:
-        return render_template("badlogin.html")
+        return render_template("badinput.html"), 400
     if int(istID) in ADMIN:
-        aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+        try:
+            aux = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+        except:
+            return render_template("ServerShutDown.html",db = "User Database Server"), 404
+
         if aux.json()['StatusCode'] == '1':
             return render_template("indexAdmin.html",istID = istID)
         else:
-            return render_template("badlogin.html")
-    return render_template("notadmin.html")
+            return render_template("badlogin.html"), 401
+    return render_template("notadmin.html"), 401
 
-# Admin Interface
+# Client Interface
 @app.route("/<path:istID>")
 def ClientIndex(istID):
     try:
         int(istID)
         session["token"]
     except:
-        return render_template("badlogin.html")
+        return render_template("badinput.html"), 400
     if int(istID) in ADMIN:
-        aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+        try:
+            aux = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+        except:
+            return render_template("ServerShutDown.html",db = "User Database Server"), 404
         if aux.json()['StatusCode'] == '1':
             return render_template("ClientIndex.html",istID = istID)
         else:
-            return render_template("badlogin.html")
-    return render_template("notadmin.html")
+            return render_template("badlogin.html"), 401
+    return render_template("notadmin.html"), 401
 
 # List the Active Gates
 @app.route("/Admin/<path:istID>/Gates")
@@ -324,8 +354,11 @@ def AdminGates(istID):
         int(istID)
         session["token"]
     except:
-        return render_template("badlogin.html")
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+        return render_template("badinput.html"), 400
+    try:
+        aux = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+    except:
+        return render_template("ServerShutDown.html",db = "User Database Server"), 404
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             Gates_list=listgates()
@@ -333,9 +366,9 @@ def AdminGates(istID):
                 return render_template_string(teste_table(Gates_list["Gates"],0),istID = istID)
             else:
                 return render_template_string(teste_table([],1),istID = istID)
-        return render_template("notadmin.html")
+        return render_template("notadmin.html"), 401
     else:
-        return render_template("badlogin.html")
+        return render_template("badlogin.html"), 401
 
 # List the Gates History
 @app.route("/Admin/<path:istID>/GatesHistory")
@@ -344,8 +377,13 @@ def AdminGatesHist(istID):
         int(istID)
         session["token"]
     except:
-        return render_template("badlogin.html")
-    aux = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+        return render_template("badinput.html"), 400
+
+    try:
+        aux = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+    except:
+        return render_template("ServerShutDown.html",db = "User Database Server"), 404
+
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             l = gateshistory()
@@ -354,9 +392,9 @@ def AdminGatesHist(istID):
                 return render_template_string(teste_table(l["history"],0),istID = istID)
             else:
                 return render_template_string(teste_table([],1),istID = istID)
-        return render_template("notadmin.html") 
+        return render_template("notadmin.html"), 401
     else:
-        return render_template("badlogin.html")
+        return render_template("badlogin.html"), 401
 
 # List the Gates History
 @app.route("/Admin/<path:istID>/GatesHistory/<path:gateID>")
@@ -365,30 +403,35 @@ def AdminGateHist(istID, gateID):
         int(istID)
         session["token"]
     except:
-        return render_template("badlogin.html")
-    aux = gateshistorybyID(gateID)
-
+        return render_template("badinput.html"), 400
+    try:
+        aux = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session['token']},allow_redirects=True)
+    except:
+        return render_template("ServerShutDown.html",db = "User Database Server"), 404
     if aux.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
-            l = requests.get(URL_DB_gates_hist + str(gateID) + "/history", allow_redirects=True).json()
-
+            l = gateshistorybyID(gateID)
             if l["history"]:
                 return render_template_string(teste_table(l["history"],0),istID = istID)
             else:
                 return render_template_string(teste_table([],1),istID = istID)
-        return render_template("notadmin.html")
+        return render_template("notadmin.html"), 401
     else:
-        return render_template("badlogin.html")
+        return render_template("badlogin.html"), 401
         
 # Add a new gate
-@app.route("/Admin/<path:istID>/newGate",methods = ['POST', 'GET'])
+@app.route("/Admin/<path:istID>/newGate",methods = ['POST','GET'])
 def AdminNewGate(istID):
     try:
         int(istID)
         session["token"]
     except:
-        return render_template("badlogin.html")
-    check = requests.post(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+        return render_template("badinput.html"), 400
+    try:
+        check = requests.get(URL_DB_user+"user/check",json={'istID':istID,'token':session["token"]},allow_redirects=True)
+    except:
+        return render_template("ServerShutDown.html",db = "User Database Server"), 404
+
     if check.json()['StatusCode'] == '1':
         if int(istID) in ADMIN:
             if request.method == 'POST':
@@ -424,9 +467,9 @@ def AdminNewGate(istID):
                     return render_template("showCreated.html",message=new,istID = istID), 201
             else:
                 return render_template("newGate.html",istID = istID)
-        return render_template("notadmin.html")
+        return render_template("notadmin.html"), 401
     else:
-        return render_template("badlogin.html")
+        return render_template("badlogin.html"), 401
 
 #--------------------------------------------------------AUTH---------------------------------------------
 
@@ -456,7 +499,7 @@ def callback():
 
     return redirect(url_for('.profile'))
 
-
+# Obtain information needed of the user
 @app.route("/profile", methods=["GET"])
 def profile():
 
@@ -466,8 +509,10 @@ def profile():
     ist_ID = github.get('https://fenix.tecnico.ulisboa.pt/api/fenix/v1/person').json()["username"]
     session["userID"] = str(ist_ID).strip('ist')
     session["token"] = randalph(12)
-    aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':session["userID"],'token':session["token"],'secret_code': ""}, allow_redirects=True).json()
-
+    try:
+        aux = requests.post(URL_DB_user + "users/newuser",json={'user_id':session["userID"],'token':session["token"],'secret_code': ""}, allow_redirects=True).json()
+    except:
+        return render_template("ServerShutDown.html",db = "User Database Server")
     return redirect(url_for('.userAuth',istID=session["userID"]))
  
 
