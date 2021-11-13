@@ -1,0 +1,16 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <div>
+   <form action = "newGate" method="post">
+    Gate ID: 
+    <input type="text" id="gateID" name="gateID">
+	
+	<p>Gate Location:
+	<input type="text" id="gateLocation" name="gateLocation">
+	
+    <p>Submit to Save Gate</p>
+   <input type="submit">
+</form>
+    </div>
+    {% endblock %}
