@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <title>QRCode Generator</title>
+  </head>
+  <body>
+	<input type="text" id="qrcontent" onchange="genQR()">
+	<div id="qrcode"></div>
+ </body>
+ <script src="qrcode.min.js"></script>
+ <script>
+	var data = document.getElementById("qrcontent");
+	var qrcode = new QRCode(document.getElementById('qrcode'));
+	
+	function genQR(){
+		qrcode.makeCode(data.value);
+	}
+  	
+</script>
+</html>

@@ -1,0 +1,37 @@
+<html>
+  <head>
+    <title>QRCode Reader</title>
+    <script type="text/javascript" src="{{
+        url_for('static', filename='instascan.min.js')}}"></script>	
+	 <style>
+      .text{
+        resize: none;
+      }
+    </style>
+  </head>
+  <body>
+    <video id="preview"></video>
+	<textarea disabled class="text" id='qr'>QRcode info</textarea>
+    <script>
+        let scanner = new Instascan.Scanner(
+            {
+                video: document.getElementById('preview')
+            }
+        );
+		
+		Instascan.Camera.getCameras().then(cameras => 
+        {
+            if(cameras.length > 0){
+                scanner.start(cameras[0]);
+            } else {
+                console.error("No Camera Found");
+            }
+        });
+		
+        scanner.addListener('scan', function(content) {
+			document.getElementById('qr').value = content;
+        });
+    </script>
+
+ </body>
+</html>
